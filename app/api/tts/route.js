@@ -1,6 +1,6 @@
 import { languageTests } from "../../lib/tests";
 
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+const DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL";
 
 const languageVoiceEnv = {
   en: "ELEVENLABS_VOICE_ID_EN",
