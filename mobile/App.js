@@ -32,6 +32,33 @@ const emptyForm = {
   firstLanguageRecall: "",
 };
 
+function pickRandomWordList(languageCode) {
+  const lists = languageTests[languageCode]?.wordLists ?? [];
+
+  if (!lists.length) {
+    return { version: null, words: [] };
+  }
+
+  const index = Math.floor(Math.random() * lists.length);
+  return { version: index + 1, words: lists[index] };
+}
+
+function formatWords(words, language) {
+  if (language === "ar") {
+    return words.join("، ");
+  }
+
+  if (language === "zh-TW") {
+    return words.join("、");
+  }
+
+  return words.join(", ");
+}
+
+function hydrateRegistration(text, words, language) {
+  return text.replace("{words}", formatWords(words, language));
+}
+
 function FieldLabel({ children }) {
   return <Text style={styles.label}>{children}</Text>;
 }
@@ -87,9 +114,10 @@ function speakWithDeviceVoice(text, language) {
   });
 }
 
-function TaskPanel({ test, onPlay, onStop }) {
+function TaskPanel({ test, selectedWords, wordListVersion, onPlay, onStop }) {
   const ui = test.ui ?? languageTests.en.ui;
   const isRtl = test.direction === "rtl";
+  const registrationText = hydrateRegistration(test.tasks.registration, selectedWords, test.code);
 
   return (
     <View style={styles.panel}>
@@ -106,8 +134,9 @@ function TaskPanel({ test, onPlay, onStop }) {
       <TaskCard
         step={`${ui.stepLabel} 1`}
         title={ui.taskTitles.registration}
-        body={test.tasks.registration}
-        words={test.wordList}
+        body={registrationText}
+        words={selectedWords}
+        wordListVersion={wordListVersion}
         ui={ui}
         language={test.code}
         onPlay={onPlay}
@@ -135,20 +164,25 @@ function TaskPanel({ test, onPlay, onStop }) {
   );
 }
 
-function TaskCard({ step, title, body, words = [], ui, language, onPlay, isRtl }) {
+function TaskCard({ step, title, body, words = [], wordListVersion, ui, language, onPlay, isRtl }) {
   return (
     <View style={styles.taskCard}>
       <Text style={[styles.step, isRtl && styles.rtlText]}>{step}</Text>
       <Text style={[styles.taskTitle, isRtl && styles.rtlText]}>{title}</Text>
       <Text style={[styles.taskBody, isRtl && styles.rtlText]}>{body}</Text>
       {words.length > 0 && (
-        <View style={[styles.wordRow, isRtl && styles.rtlRow]}>
-          {words.map((word) => (
-            <Text key={word} style={styles.wordChip}>
-              {word}
-            </Text>
-          ))}
-        </View>
+        <>
+          {wordListVersion && (
+            <Text style={[styles.versionLabel, isRtl && styles.rtlText]}>Version {wordListVersion}</Text>
+          )}
+          <View style={[styles.wordRow, isRtl && styles.rtlRow]}>
+            {words.map((word) => (
+              <Text key={word} style={styles.wordChip}>
+                {word}
+              </Text>
+            ))}
+          </View>
+        </>
       )}
       <VoiceButton text={body} language={language} label={ui.listen} onPlay={onPlay} />
     </View>
@@ -175,6 +209,9 @@ export default function App() {
   const [screen, setScreen] = useState("signup");
   const [form, setForm] = useState(emptyForm);
   const [audioStatus, setAudioStatus] = useState("");
+  const [wordSelections, setWordSelections] = useState({
+    en: pickRandomWordList("en"),
+  });
   const playerRef = useRef(null);
 
   const selectedLanguage = form.firstLanguage ? languageTests[form.firstLanguage] : null;
@@ -182,6 +219,26 @@ export default function App() {
 
   function update(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function ensureWordSelection(languageCode) {
+    setWordSelections((current) => {
+      if (current[languageCode]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [languageCode]: pickRandomWordList(languageCode),
+      };
+    });
+  }
+
+  function resetActivity() {
+    stopAudio();
+    setForm(emptyForm);
+    setWordSelections({ en: pickRandomWordList("en") });
+    setScreen("signup");
   }
 
   function stopAudio() {
@@ -240,6 +297,7 @@ export default function App() {
     }
 
     if (showPhase2) {
+      ensureWordSelection(form.firstLanguage);
       setScreen("phase2");
     }
   }
@@ -296,7 +354,13 @@ export default function App() {
             </Text>
             {audioStatus && <Text style={styles.audioStatus}>{audioStatus}</Text>}
           </View>
-          <TaskPanel test={languageTests.en} onPlay={playElevenLabs} onStop={stopAudio} />
+          <TaskPanel
+            test={languageTests.en}
+            selectedWords={wordSelections.en.words}
+            wordListVersion={wordSelections.en.version}
+            onPlay={playElevenLabs}
+            onStop={stopAudio}
+          />
           <View style={styles.panel}>
             <Text style={styles.sectionTitle}>English answer</Text>
             <FieldLabel>{languageTests.en.ui.answerLabel}</FieldLabel>
@@ -344,7 +408,13 @@ export default function App() {
       {screen === "phase2" && showPhase2 && (
         <ScrollView contentContainerStyle={styles.page}>
           <ScreenHeader subtitle={`Phase 2 is completed in ${selectedLanguage.label}.`} />
-          <TaskPanel test={selectedLanguage} onPlay={playElevenLabs} onStop={stopAudio} />
+          <TaskPanel
+            test={selectedLanguage}
+            selectedWords={wordSelections[form.firstLanguage]?.words ?? []}
+            wordListVersion={wordSelections[form.firstLanguage]?.version}
+            onPlay={playElevenLabs}
+            onStop={stopAudio}
+          />
           {audioStatus && <Text style={styles.floatingStatus}>{audioStatus}</Text>}
           <View style={styles.panel}>
             <Text style={[styles.sectionTitle, selectedLanguage.direction === "rtl" && styles.rtlText]}>
@@ -370,7 +440,7 @@ export default function App() {
           <View style={styles.panel}>
             <Text style={styles.sectionTitle}>Complete</Text>
             <Text style={styles.mutedText}>Thank you. The activity is finished.</Text>
-            <PrimaryButton onPress={() => setScreen("signup")}>Start over</PrimaryButton>
+            <PrimaryButton onPress={resetActivity}>Start over</PrimaryButton>
           </View>
         </ScrollView>
       )}
@@ -550,6 +620,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  versionLabel: {
+    color: "#5d6863",
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 12,
   },
   voiceButton: {
     alignSelf: "flex-start",

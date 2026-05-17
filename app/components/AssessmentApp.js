@@ -64,8 +64,26 @@ function VoiceButton({ text, locale, label = "Play instruction" }) {
   );
 }
 
+function formatWords(words, language) {
+  if (language === "ar") {
+    return words.join("، ");
+  }
+
+  if (language === "zh-TW") {
+    return words.join("、");
+  }
+
+  return words.join(", ");
+}
+
+function hydrateRegistration(text, words, language) {
+  return text.replace("{words}", formatWords(words, language));
+}
+
 function PatientTaskPanel({ test, title }) {
   const ui = test.ui ?? languageTests.en.ui;
+  const wordList = test.wordLists?.[0] ?? [];
+  const registrationText = hydrateRegistration(test.tasks?.registration ?? "", wordList, test.code);
 
   if (!test.tasks) {
     return (
@@ -97,13 +115,13 @@ function PatientTaskPanel({ test, title }) {
         <article className="taskCard focusTask">
           <span>{ui.stepLabel} 1</span>
           <h3>{ui.taskTitles.registration}</h3>
-          <p>{test.tasks.registration}</p>
+          <p>{registrationText}</p>
           <div className="wordChips">
-            {test.wordList.map((word) => (
+            {wordList.map((word) => (
               <strong key={word}>{word}</strong>
             ))}
           </div>
-          <VoiceButton text={test.tasks.registration} locale={test.voiceLocale} label={ui.listen} />
+          <VoiceButton text={registrationText} locale={test.voiceLocale} label={ui.listen} />
         </article>
 
         <article className="taskCard focusTask">
