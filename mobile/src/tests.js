@@ -1,5 +1,6 @@
 export const languageTests = {
   en: {
+    code: "en",
     label: "English",
     nativeLabel: "English",
     direction: "ltr",
@@ -27,6 +28,7 @@ export const languageTests = {
     imported: true,
   },
   ar: {
+    code: "ar",
     label: "Arabic",
     nativeLabel: "العربية",
     direction: "rtl",
@@ -54,6 +56,7 @@ export const languageTests = {
     imported: true,
   },
   "zh-TW": {
+    code: "zh-TW",
     label: "Chinese",
     nativeLabel: "中文",
     direction: "ltr",
@@ -81,6 +84,7 @@ export const languageTests = {
     imported: true,
   },
   es: {
+    code: "es",
     label: "Spanish",
     nativeLabel: "Español",
     direction: "ltr",
@@ -108,6 +112,7 @@ export const languageTests = {
     imported: true,
   },
   fr: {
+    code: "fr",
     label: "French",
     nativeLabel: "Français",
     direction: "ltr",

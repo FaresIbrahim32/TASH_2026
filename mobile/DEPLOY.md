@@ -15,6 +15,20 @@ npx expo export --platform web
 
 ## Vercel
 
+ElevenLabs voice playback requires a server-side API because `ELEVENLABS_API_KEY` must stay secret.
+
+For a Vercel deployment, set these environment variables:
+
+- `ELEVENLABS_API_KEY`
+- `ELEVENLABS_VOICE_ID` optional fallback
+- `ELEVENLABS_VOICE_ID_EN` optional
+- `ELEVENLABS_VOICE_ID_AR` optional
+- `ELEVENLABS_VOICE_ID_ES` optional
+- `ELEVENLABS_VOICE_ID_ZH` optional
+- `EXPO_PUBLIC_TTS_ENDPOINT=/api/tts` if the TTS API is deployed with the same host
+
+This repo includes `mobile/api/tts.js` for Vercel serverless deployments from the `mobile` root.
+
 Use either:
 
 ```bash
@@ -30,6 +44,9 @@ Or connect a GitHub repo and configure:
 
 ## Netlify
 
+ElevenLabs voice playback also needs a Netlify Function or another deployed TTS API endpoint.
+Set `EXPO_PUBLIC_TTS_ENDPOINT` to that HTTPS endpoint before exporting the app.
+
 Use either:
 
 ```bash
@@ -44,6 +61,13 @@ Or connect a GitHub repo and configure:
 - Publish directory: `mobile/dist`
 
 ## GitHub Pages
+
+GitHub Pages can host the static UI, but it cannot securely store `ELEVENLABS_API_KEY`.
+For GitHub Pages, deploy `/api/tts` somewhere else and set:
+
+```bash
+EXPO_PUBLIC_TTS_ENDPOINT=https://your-api-host.example.com/api/tts
+```
 
 Commit and publish the contents of `mobile/dist`, or use a GitHub Pages action that runs:
 

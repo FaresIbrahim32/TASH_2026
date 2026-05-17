@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
+import { createAudioPlayer } from "expo-audio";
 import * as Speech from "expo-speech";
 import { Picker } from "@react-native-picker/picker";
 import {
   I18nManager,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -14,37 +16,27 @@ import {
 } from "react-native";
 import { languageTests, supportedFirstLanguages } from "./src/tests";
 
+const defaultTtsEndpoint =
+  Platform.OS === "web" && typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:3000/api/tts"
+    : "/api/tts";
+const TTS_ENDPOINT = process.env.EXPO_PUBLIC_TTS_ENDPOINT || defaultTtsEndpoint;
+
 const emptyForm = {
   age: "",
   gender: "",
   educationYears: "",
   countryOrRegion: "",
-  secondLanguage: "",
+  firstLanguage: "",
   englishRecall: "",
-  secondLanguageRecall: "",
+  firstLanguageRecall: "",
 };
-
-function speak(text, locale) {
-  Speech.stop();
-  Speech.speak(text, {
-    language: locale,
-    rate: 0.88,
-  });
-}
-
-function VoiceButton({ text, locale, label }) {
-  return (
-    <TouchableOpacity style={styles.voiceButton} onPress={() => speak(text, locale)}>
-      <Text style={styles.voiceButtonText}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
 
 function FieldLabel({ children }) {
   return <Text style={styles.label}>{children}</Text>;
 }
 
-function TextField({ value, onChangeText, placeholder, keyboardType = "default", multiline = false }) {
+function TextField({ value, onChangeText, placeholder, keyboardType = "default", multiline = false, rtl = false }) {
   return (
     <TextInput
       value={value}
@@ -52,7 +44,8 @@ function TextField({ value, onChangeText, placeholder, keyboardType = "default",
       placeholder={placeholder}
       keyboardType={keyboardType}
       multiline={multiline}
-      style={[styles.input, multiline && styles.textArea]}
+      style={[styles.input, multiline && styles.textArea, rtl && styles.rtlInput]}
+      textAlign={rtl ? "right" : "left"}
       textAlignVertical={multiline ? "top" : "center"}
     />
   );
@@ -68,7 +61,33 @@ function NativeSelect({ selectedValue, onValueChange, children }) {
   );
 }
 
-function TaskPanel({ test }) {
+function ScreenHeader({ subtitle }) {
+  return (
+    <View style={styles.header}>
+      <Text style={styles.title}>Memory and clock activity</Text>
+      <Text style={styles.headerCopy}>{subtitle}</Text>
+    </View>
+  );
+}
+
+function VoiceButton({ text, language, label, onPlay }) {
+  return (
+    <TouchableOpacity style={styles.voiceButton} onPress={() => onPlay(text, language)}>
+      <Text style={styles.voiceButtonText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function speakWithDeviceVoice(text, language) {
+  const locale = languageTests[language]?.voiceLocale ?? "en-US";
+  Speech.stop();
+  Speech.speak(text, {
+    language: locale,
+    rate: 0.88,
+  });
+}
+
+function TaskPanel({ test, onPlay, onStop }) {
   const ui = test.ui ?? languageTests.en.ui;
   const isRtl = test.direction === "rtl";
 
@@ -79,7 +98,7 @@ function TaskPanel({ test }) {
           <Text style={[styles.panelKicker, isRtl && styles.rtlText]}>{ui.instructionsTitle}</Text>
           <Text style={[styles.panelTitle, isRtl && styles.rtlText]}>{test.nativeLabel}</Text>
         </View>
-        <TouchableOpacity style={styles.stopButton} onPress={() => Speech.stop()}>
+        <TouchableOpacity style={styles.stopButton} onPress={onStop}>
           <Text style={styles.stopButtonText}>■</Text>
         </TouchableOpacity>
       </View>
@@ -90,7 +109,8 @@ function TaskPanel({ test }) {
         body={test.tasks.registration}
         words={test.wordList}
         ui={ui}
-        locale={test.voiceLocale}
+        language={test.code}
+        onPlay={onPlay}
         isRtl={isRtl}
       />
       <TaskCard
@@ -98,7 +118,8 @@ function TaskPanel({ test }) {
         title={ui.taskTitles.clock}
         body={test.tasks.clock}
         ui={ui}
-        locale={test.voiceLocale}
+        language={test.code}
+        onPlay={onPlay}
         isRtl={isRtl}
       />
       <TaskCard
@@ -106,14 +127,15 @@ function TaskPanel({ test }) {
         title={ui.taskTitles.recall}
         body={test.tasks.recall}
         ui={ui}
-        locale={test.voiceLocale}
+        language={test.code}
+        onPlay={onPlay}
         isRtl={isRtl}
       />
     </View>
   );
 }
 
-function TaskCard({ step, title, body, words = [], ui, locale, isRtl }) {
+function TaskCard({ step, title, body, words = [], ui, language, onPlay, isRtl }) {
   return (
     <View style={styles.taskCard}>
       <Text style={[styles.step, isRtl && styles.rtlText]}>{step}</Text>
@@ -128,137 +150,230 @@ function TaskCard({ step, title, body, words = [], ui, locale, isRtl }) {
           ))}
         </View>
       )}
-      <VoiceButton text={body} locale={locale} label={ui.listen} />
+      <VoiceButton text={body} language={language} label={ui.listen} onPlay={onPlay} />
     </View>
   );
 }
 
+function PrimaryButton({ children, onPress, disabled = false }) {
+  return (
+    <TouchableOpacity style={[styles.primaryButton, disabled && styles.disabledButton]} onPress={onPress} disabled={disabled}>
+      <Text style={styles.primaryButtonText}>{children}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function SecondaryButton({ children, onPress }) {
+  return (
+    <TouchableOpacity style={styles.secondaryButton} onPress={onPress}>
+      <Text style={styles.secondaryButtonText}>{children}</Text>
+    </TouchableOpacity>
+  );
+}
+
 export default function App() {
+  const [screen, setScreen] = useState("signup");
   const [form, setForm] = useState(emptyForm);
-  const [finished, setFinished] = useState(false);
-  const secondLanguage = form.secondLanguage ? languageTests[form.secondLanguage] : null;
-  const showSecondLanguage = secondLanguage?.imported;
+  const [audioStatus, setAudioStatus] = useState("");
+  const playerRef = useRef(null);
+
+  const selectedLanguage = form.firstLanguage ? languageTests[form.firstLanguage] : null;
+  const showPhase2 = selectedLanguage?.imported && form.firstLanguage !== "en";
 
   function update(field, value) {
-    setFinished(false);
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function stopAudio() {
+    try {
+      playerRef.current?.pause?.();
+      playerRef.current?.remove?.();
+      Speech.stop();
+    } catch {
+      // Best effort stop across native/web players.
+    }
+    playerRef.current = null;
+    setAudioStatus("");
+  }
+
+  async function playElevenLabs(text, language) {
+    stopAudio();
+    setAudioStatus("Loading voice...");
+
+    try {
+      const url = `${TTS_ENDPOINT}?language=${encodeURIComponent(language)}&text=${encodeURIComponent(text)}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        let message = "ElevenLabs voice failed. Using device voice instead.";
+        try {
+          const error = await response.json();
+          const details = typeof error.details === "string" ? JSON.parse(error.details) : null;
+          message = details?.detail?.message || error.message || message;
+        } catch {
+          // Keep generic fallback message.
+        }
+
+        speakWithDeviceVoice(text, language);
+        setAudioStatus(`${message} Device voice is playing.`);
+        return;
+      }
+
+      const player = createAudioPlayer({ uri: url });
+      playerRef.current = player;
+      player.play();
+      setAudioStatus("Playing ElevenLabs voice");
+    } catch (error) {
+      speakWithDeviceVoice(text, language);
+      setAudioStatus("ElevenLabs voice failed. Device voice is playing.");
+    }
+  }
+
+  function goToLanguageQuestion() {
+    setScreen("language");
+  }
+
+  function continueFromLanguage() {
+    if (!form.firstLanguage || form.firstLanguage === "en") {
+      setScreen("done");
+      return;
+    }
+
+    if (showPhase2) {
+      setScreen("phase2");
+    }
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Memory and clock activity</Text>
-          <Text style={styles.headerCopy}>
-            First complete the English version. Then choose another language if you speak one.
-          </Text>
-        </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.sectionTitle}>About you</Text>
-          <FieldLabel>Age</FieldLabel>
-          <TextField
-            value={form.age}
-            onChangeText={(value) => update("age", value)}
-            placeholder="Age"
-            keyboardType="number-pad"
-          />
-          <FieldLabel>Gender</FieldLabel>
-          <NativeSelect selectedValue={form.gender} onValueChange={(value) => update("gender", value)}>
-            <Picker.Item label="Select" value="" />
-            <Picker.Item label="Female" value="female" />
-            <Picker.Item label="Male" value="male" />
-            <Picker.Item label="Non-binary" value="nonbinary" />
-            <Picker.Item label="Prefer not to say" value="prefer-not" />
-          </NativeSelect>
-          <FieldLabel>Education years</FieldLabel>
-          <TextField
-            value={form.educationYears}
-            onChangeText={(value) => update("educationYears", value)}
-            placeholder="Years"
-            keyboardType="number-pad"
-          />
-          <FieldLabel>Country or region</FieldLabel>
-          <TextField
-            value={form.countryOrRegion}
-            onChangeText={(value) => update("countryOrRegion", value)}
-            placeholder="Country or region"
-          />
-        </View>
+      {screen === "signup" && (
+        <ScrollView contentContainerStyle={styles.page}>
+          <ScreenHeader subtitle="Before we begin, please answer a few background questions." />
+          <View style={styles.panel}>
+            <Text style={styles.sectionTitle}>Sign up</Text>
+            <FieldLabel>Age</FieldLabel>
+            <TextField
+              value={form.age}
+              onChangeText={(value) => update("age", value)}
+              placeholder="Age"
+              keyboardType="number-pad"
+            />
+            <FieldLabel>Gender</FieldLabel>
+            <NativeSelect selectedValue={form.gender} onValueChange={(value) => update("gender", value)}>
+              <Picker.Item label="Select" value="" />
+              <Picker.Item label="Female" value="female" />
+              <Picker.Item label="Male" value="male" />
+              <Picker.Item label="Non-binary" value="nonbinary" />
+              <Picker.Item label="Prefer not to say" value="prefer-not" />
+            </NativeSelect>
+            <FieldLabel>Education years</FieldLabel>
+            <TextField
+              value={form.educationYears}
+              onChangeText={(value) => update("educationYears", value)}
+              placeholder="Years"
+              keyboardType="number-pad"
+            />
+            <FieldLabel>Country or region</FieldLabel>
+            <TextField
+              value={form.countryOrRegion}
+              onChangeText={(value) => update("countryOrRegion", value)}
+              placeholder="Country or region"
+            />
+            <PrimaryButton onPress={() => setScreen("phase1")}>Continue to Phase 1</PrimaryButton>
+          </View>
+        </ScrollView>
+      )}
 
-        <View style={styles.panel}>
-          <Text style={styles.sectionTitle}>Phase 1: English</Text>
-          <Text style={styles.mutedText}>
-            Listen to the English instructions first. When asked to draw the clock, use the sheet provided by the clinician.
-          </Text>
-        </View>
+      {screen === "phase1" && (
+        <ScrollView contentContainerStyle={styles.page}>
+          <ScreenHeader subtitle="Phase 1 is completed in English." />
+          <View style={styles.panel}>
+            <Text style={styles.sectionTitle}>Phase 1: English</Text>
+            <Text style={styles.mutedText}>
+              Listen to each instruction. When asked to draw the clock, use the sheet provided by the clinician.
+            </Text>
+            {audioStatus && <Text style={styles.audioStatus}>{audioStatus}</Text>}
+          </View>
+          <TaskPanel test={languageTests.en} onPlay={playElevenLabs} onStop={stopAudio} />
+          <View style={styles.panel}>
+            <Text style={styles.sectionTitle}>English answer</Text>
+            <FieldLabel>{languageTests.en.ui.answerLabel}</FieldLabel>
+            <TextField
+              value={form.englishRecall}
+              onChangeText={(value) => update("englishRecall", value)}
+              placeholder={languageTests.en.ui.answerPlaceholder}
+              multiline
+            />
+            <PrimaryButton onPress={goToLanguageQuestion}>Finish Phase 1</PrimaryButton>
+          </View>
+        </ScrollView>
+      )}
 
-        <TaskPanel test={languageTests.en} />
-
-        <View style={styles.panel}>
-          <Text style={styles.sectionTitle}>English answer</Text>
-          <FieldLabel>{languageTests.en.ui.answerLabel}</FieldLabel>
-          <TextField
-            value={form.englishRecall}
-            onChangeText={(value) => update("englishRecall", value)}
-            placeholder={languageTests.en.ui.answerPlaceholder}
-            multiline
-          />
-        </View>
-
-        <View style={styles.panel}>
-          <Text style={styles.sectionTitle}>Phase 2: Another language</Text>
-          <FieldLabel>Do you speak another language best?</FieldLabel>
-          <NativeSelect
-            selectedValue={form.secondLanguage}
-            onValueChange={(value) => update("secondLanguage", value)}
-          >
-            <Picker.Item label="No additional language selected" value="" />
-            {supportedFirstLanguages
-              .filter((language) => language.code !== "en")
-              .map((language) => (
+      {screen === "language" && (
+        <ScrollView contentContainerStyle={styles.page}>
+          <ScreenHeader subtitle="Now tell us the language you learned first or speak most naturally." />
+          <View style={styles.panel}>
+            <Text style={styles.sectionTitle}>First language</Text>
+            <FieldLabel>What is your first language?</FieldLabel>
+            <NativeSelect selectedValue={form.firstLanguage} onValueChange={(value) => update("firstLanguage", value)}>
+              <Picker.Item label="Select a language" value="" />
+              {supportedFirstLanguages.map((language) => (
                 <Picker.Item
                   key={language.code}
                   label={`${language.label}${language.imported ? "" : " (coming soon)"}`}
                   value={language.code}
                 />
               ))}
-          </NativeSelect>
-          {!form.secondLanguage && (
-            <Text style={styles.softNotice}>
-              Choose a language only if the patient speaks one. Otherwise continue with English only.
-            </Text>
-          )}
-          {form.secondLanguage && !showSecondLanguage && (
-            <Text style={styles.softNotice}>This language is not ready yet. Only English will be shown.</Text>
-          )}
-        </View>
-
-        {showSecondLanguage && <TaskPanel test={secondLanguage} />}
-
-        {showSecondLanguage && (
-          <View style={styles.panel}>
-            <FieldLabel>{secondLanguage.ui.answerLabel}</FieldLabel>
-            <TextInput
-              value={form.secondLanguageRecall}
-              onChangeText={(value) => update("secondLanguageRecall", value)}
-              placeholder={secondLanguage.ui.answerPlaceholder}
-              multiline
-              style={[styles.input, styles.textArea, secondLanguage.direction === "rtl" && styles.rtlInput]}
-              textAlign={secondLanguage.direction === "rtl" ? "right" : "left"}
-              textAlignVertical="top"
-            />
+            </NativeSelect>
+            {form.firstLanguage && !showPhase2 && form.firstLanguage !== "en" && (
+              <Text style={styles.softNotice}>This language is not ready yet.</Text>
+            )}
+            {form.firstLanguage === "en" && (
+              <Text style={styles.softNotice}>English was already completed in Phase 1.</Text>
+            )}
+            <PrimaryButton onPress={continueFromLanguage} disabled={!form.firstLanguage}>
+              Continue
+            </PrimaryButton>
+            <SecondaryButton onPress={() => setScreen("phase1")}>Back to Phase 1</SecondaryButton>
           </View>
-        )}
+        </ScrollView>
+      )}
 
-        <View style={styles.panel}>
-          <TouchableOpacity style={styles.finishButton} onPress={() => setFinished(true)}>
-            <Text style={styles.finishButtonText}>Finish activity</Text>
-          </TouchableOpacity>
-          {finished && <Text style={styles.doneText}>Your responses are ready.</Text>}
-        </View>
-      </ScrollView>
+      {screen === "phase2" && showPhase2 && (
+        <ScrollView contentContainerStyle={styles.page}>
+          <ScreenHeader subtitle={`Phase 2 is completed in ${selectedLanguage.label}.`} />
+          <TaskPanel test={selectedLanguage} onPlay={playElevenLabs} onStop={stopAudio} />
+          {audioStatus && <Text style={styles.floatingStatus}>{audioStatus}</Text>}
+          <View style={styles.panel}>
+            <Text style={[styles.sectionTitle, selectedLanguage.direction === "rtl" && styles.rtlText]}>
+              {selectedLanguage.ui.instructionsTitle}
+            </Text>
+            <FieldLabel>{selectedLanguage.ui.answerLabel}</FieldLabel>
+            <TextField
+              value={form.firstLanguageRecall}
+              onChangeText={(value) => update("firstLanguageRecall", value)}
+              placeholder={selectedLanguage.ui.answerPlaceholder}
+              multiline
+              rtl={selectedLanguage.direction === "rtl"}
+            />
+            <PrimaryButton onPress={() => setScreen("done")}>Finish Phase 2</PrimaryButton>
+            <SecondaryButton onPress={() => setScreen("language")}>Back</SecondaryButton>
+          </View>
+        </ScrollView>
+      )}
+
+      {screen === "done" && (
+        <ScrollView contentContainerStyle={styles.page}>
+          <ScreenHeader subtitle="Your responses are ready for clinician review." />
+          <View style={styles.panel}>
+            <Text style={styles.sectionTitle}>Complete</Text>
+            <Text style={styles.mutedText}>Thank you. The activity is finished.</Text>
+            <PrimaryButton onPress={() => setScreen("signup")}>Start over</PrimaryButton>
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -344,6 +459,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 12,
     padding: 12,
+  },
+  audioStatus: {
+    color: "#0d5d58",
+    fontSize: 14,
+    fontWeight: "800",
+    marginTop: 12,
+  },
+  floatingStatus: {
+    color: "#0d5d58",
+    fontSize: 14,
+    fontWeight: "800",
+    marginHorizontal: 16,
+    marginTop: 10,
   },
   panelHeader: {
     borderBottomColor: "#d9dfd8",
@@ -436,23 +564,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
   },
-  finishButton: {
+  primaryButton: {
     alignItems: "center",
     backgroundColor: "#0f766e",
     borderRadius: 7,
-    minHeight: 48,
     justifyContent: "center",
+    marginTop: 16,
+    minHeight: 48,
   },
-  finishButtonText: {
+  primaryButtonText: {
     color: "#fff",
     fontSize: 17,
     fontWeight: "800",
   },
-  doneText: {
-    color: "#177245",
+  secondaryButton: {
+    alignItems: "center",
+    backgroundColor: "#f7f9f8",
+    borderColor: "#d9dfd8",
+    borderRadius: 7,
+    borderWidth: 1,
+    justifyContent: "center",
+    marginTop: 10,
+    minHeight: 44,
+  },
+  secondaryButtonText: {
+    color: "#17201c",
     fontSize: 16,
     fontWeight: "800",
-    marginTop: 12,
+  },
+  disabledButton: {
+    opacity: 0.55,
   },
   rtlText: {
     writingDirection: "rtl",
