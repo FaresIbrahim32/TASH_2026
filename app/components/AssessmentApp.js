@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Check,
   ClipboardList,
@@ -145,6 +145,44 @@ function PatientTaskPanel({ test, title }) {
 export default function AssessmentApp() {
   const [form, setForm] = useState(emptyForm);
   const [activityDone, setActivityDone] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          // Auto-fill demographic profile details
+          setForm((current) => ({
+            ...current,
+            patient: {
+              ...current.patient,
+              identifier: data.user.email,
+              age: data.user.age.toString(),
+              gender: data.user.gender,
+              educationYears: data.user.educationYears.toString(),
+            },
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
+      }
+    }
+    fetchUser();
+  }, []);
+
+  async function handleLogout() {
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (res.ok) {
+        window.location.href = "/login";
+      }
+    } catch (err) {
+      console.error("Failed to log out:", err);
+    }
+  }
 
   const secondLanguage = form.patient.firstLanguage
     ? languageTests[form.patient.firstLanguage]
@@ -182,9 +220,30 @@ export default function AssessmentApp() {
       <header className="topBar">
         <div>
           <h1>Memory and clock activity</h1>
+          {user && (
+            <p style={{ color: "#91d6cd", fontWeight: "bold", fontSize: "0.92rem", marginTop: "4px" }}>
+              Welcome, {user.firstName} {user.lastName}!
+            </p>
+          )}
           <p className="headerCopy">
             First complete the English version. Then choose another language if you speak one, and the same activity will appear in that language.
           </p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{
+              background: "transparent",
+              color: "#fda29b",
+              border: "1px solid #fda29b",
+              fontSize: "0.85rem",
+              minHeight: "34px",
+              padding: "6px 12px",
+            }}
+          >
+            Log Out
+          </button>
         </div>
       </header>
 
@@ -200,7 +259,7 @@ export default function AssessmentApp() {
               Age
               <input
                 type="number"
-                min="0"
+                min="1"
                 max="125"
                 value={form.patient.age}
                 onChange={(event) => updatePatient("age", event.target.value)}
@@ -221,6 +280,7 @@ export default function AssessmentApp() {
                 <option value="prefer-not">Prefer not to say</option>
               </select>
             </label>
+
           </div>
 
           <div className="twoCol">
