@@ -73,9 +73,6 @@ export default function Dashboard({ user }) {
       {/* Top Header */}
       <header className="topBar" style={{ background: "#10251f", color: "#fff", padding: "20px clamp(18px, 4vw, 44px)" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <span className="eyebrow" style={{ color: "#91d6cd", fontWeight: "800", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1px" }}>
-            Patient Portal
-          </span>
           <h1 style={{ margin: 0, fontSize: "clamp(1.4rem, 2.2vw, 2rem)", fontWeight: 700 }}>
             Cognitive Assessment Portal
           </h1>
