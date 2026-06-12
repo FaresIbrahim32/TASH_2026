@@ -10,10 +10,24 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const capturedImageRef = useRef(null);
+  const onCaptureRef = useRef(onCapture);
+
+  useEffect(() => {
+    capturedImageRef.current = capturedImage;
+  }, [capturedImage]);
+
+  useEffect(() => {
+    onCaptureRef.current = onCapture;
+  }, [onCapture]);
+
   useEffect(() => {
     startCamera();
     return () => {
       stopCamera();
+      if (capturedImageRef.current && onCaptureRef.current) {
+        onCaptureRef.current(capturedImageRef.current);
+      }
     };
   }, []);
 

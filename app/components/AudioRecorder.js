@@ -24,6 +24,17 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
   const animationFrameRef = useRef(null);
   const streamRef = useRef(null);
 
+  const onConfirmRef = useRef(onConfirm);
+  const audioBlobRef = useRef(null);
+
+  useEffect(() => {
+    onConfirmRef.current = onConfirm;
+  }, [onConfirm]);
+
+  useEffect(() => {
+    audioBlobRef.current = audioBlob;
+  }, [audioBlob]);
+
   useEffect(() => {
     return () => {
       cleanupAudio();
@@ -32,6 +43,10 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
 
   function cleanupAudio() {
     stopTimer();
+    
+    // Check if we were actively recording on unmount
+    const wasRecording = mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive";
+
     stopRecordingSession();
     stopPlayback();
     if (animationFrameRef.current) {
@@ -39,6 +54,28 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
     }
     if (audioContextRef.current && audioContextRef.current.state !== "closed") {
       audioContextRef.current.close();
+    }
+
+    if (wasRecording && audioChunksRef.current.length > 0) {
+      const mimeType = (mediaRecorderRef.current && mediaRecorderRef.current.mimeType) || "audio/webm";
+      const blob = new Blob(audioChunksRef.current, { type: mimeType });
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = () => {
+        const base64data = reader.result;
+        if (onConfirmRef.current) {
+          onConfirmRef.current(base64data);
+        }
+      };
+    } else if (audioBlobRef.current) {
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlobRef.current);
+      reader.onloadend = () => {
+        const base64data = reader.result;
+        if (onConfirmRef.current) {
+          onConfirmRef.current(base64data);
+        }
+      };
     }
   }
 

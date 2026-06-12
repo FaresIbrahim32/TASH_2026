@@ -39,94 +39,176 @@ function stopSpeech() {
 // Generate the array of wizard steps based on test type and selected language
 function getStepsForTest(testType, lang) {
   if (testType === "mini-cog") {
+    const titles = {
+      en: {
+        registration: "Word Presentation",
+        clock: "Clock Drawing",
+        recall: "Word Recall",
+      },
+      es: {
+        registration: "Presentación de palabras",
+        clock: "Dibujar el reloj",
+        recall: "Recordar palabras",
+      },
+      "zh-TW": {
+        registration: "顯示詞彙",
+        clock: "畫時鐘",
+        recall: "回想名詞",
+      },
+      ar: {
+        registration: "عرض الكلمات",
+        clock: "رسم الساعة",
+        recall: "تذكر الكلمات",
+      }
+    };
+
+    const t = titles[lang] || titles.en;
+
     return [
       {
         id: `minicog_registration_${lang}`,
         type: "registration",
         lang,
-        title: lang === "en" ? "Word Presentation" : "عرض الكلمات / 顯示詞彙 / Presentación de palabras",
+        title: t.registration,
       },
       {
         id: `minicog_clock_${lang}`,
         type: "clock",
         lang,
-        title: lang === "en" ? "Clock Drawing" : "رسم الساعة / 畫時鐘 / Dibujar el reloj",
+        title: t.clock,
       },
       {
         id: `minicog_recall_${lang}`,
         type: "recall",
         lang,
-        title: lang === "en" ? "Word Recall" : "تذكر الكلمات / 回想名詞 / Recordar palabras",
+        title: t.recall,
       },
     ];
   } else {
     // MMSE Steps
+    const titles = {
+      en: {
+        temporal: "Temporal Orientation",
+        spatial: "Spatial Orientation",
+        registration: "Registration",
+        attention: "Attention & Calculation",
+        recall: "Word Recall",
+        naming: "Object Naming",
+        repetition: "Repetition",
+        command: "3-Stage Command",
+        reading: "Reading & Obedience",
+        writing: "Sentence Writing",
+        pentagons: "Intersecting Pentagons",
+      },
+      es: {
+        temporal: "Orientación temporal",
+        spatial: "Orientación espacial",
+        registration: "Registro de palabras",
+        attention: "Atención y cálculo",
+        recall: "Recordar palabras",
+        naming: "Nominación de objetos",
+        repetition: "Repetición de frase",
+        command: "Comando de tres etapas",
+        reading: "Lectura y ejecución",
+        writing: "Escritura de una oración",
+        pentagons: "Pentágonos intersectados",
+      },
+      "zh-TW": {
+        temporal: "時間定向",
+        spatial: "空間定向",
+        registration: "詞彙註冊",
+        attention: "注意力與計算",
+        recall: "詞彙回想",
+        naming: "物體命名",
+        repetition: "語句複誦",
+        command: "三階段指令",
+        reading: "閱讀理解",
+        writing: "寫一句話",
+        pentagons: "交叉五角形",
+      },
+      ar: {
+        temporal: "الاعتياد الزمني",
+        spatial: "الاعتياد المكاني",
+        registration: "التسجيل",
+        attention: "التركيز والحساب",
+        recall: "تذكر الكلمات",
+        naming: "تسمية الأشياء",
+        repetition: "التكرار اللفظي",
+        command: "الأوامر الثلاثية",
+        reading: "القراءة والتنفيذ",
+        writing: "كتابة الجملة",
+        pentagons: "رسم الأشكال الهندسية",
+      }
+    };
+
+    const t = titles[lang] || titles.en;
+
     return [
       {
         id: `mmse_temporal_${lang}`,
         type: "mmse_temporal",
         lang,
-        title: lang === "en" ? "Temporal Orientation" : "الاعتياد الزمني / 時間定向 / Orientación temporal",
+        title: t.temporal,
       },
       {
         id: `mmse_spatial_${lang}`,
         type: "mmse_spatial",
         lang,
-        title: lang === "en" ? "Spatial Orientation" : "الاعتياد المكاني / 空間定向 / Orientación espacial",
+        title: t.spatial,
       },
       {
         id: `mmse_registration_${lang}`,
         type: "mmse_registration",
         lang,
-        title: lang === "en" ? "Registration" : "التسجيل / 詞彙註冊 / Registro de palabras",
+        title: t.registration,
       },
       {
         id: `mmse_attention_${lang}`,
         type: "mmse_attention",
         lang,
-        title: lang === "en" ? "Attention & Calculation" : "التركيز والحساب / 注意力與計算 / Atención y cálculo",
+        title: t.attention,
       },
       {
         id: `mmse_recall_${lang}`,
         type: "mmse_recall",
         lang,
-        title: lang === "en" ? "Word Recall" : "تذكر الكلمات / 詞彙回想 / Recordar palabras",
+        title: t.recall,
       },
       {
         id: `mmse_naming_${lang}`,
         type: "mmse_naming",
         lang,
-        title: lang === "en" ? "Object Naming" : "تسمية الأشياء / 物體命名 / Nominación de objetos",
+        title: t.naming,
       },
       {
         id: `mmse_repetition_${lang}`,
         type: "mmse_repetition",
         lang,
-        title: lang === "en" ? "Repetition" : "التكرار اللفظي / 語句複誦 / Repetición de frase",
+        title: t.repetition,
       },
       {
         id: `mmse_command_${lang}`,
         type: "mmse_command",
         lang,
-        title: lang === "en" ? "3-Stage Command" : "الأوامر الثلاثية / 三階段指令 / Comando de tres etapas",
+        title: t.command,
       },
       {
         id: `mmse_reading_${lang}`,
         type: "mmse_reading",
         lang,
-        title: lang === "en" ? "Reading & Obedience" : "القراءة والتنفيذ / 閱讀理解 / Lectura y ejecución",
+        title: t.reading,
       },
       {
         id: `mmse_writing_${lang}`,
         type: "mmse_writing",
         lang,
-        title: lang === "en" ? "Sentence Writing" : "كتابة الجملة / 寫一句話 / Escritura de una oración",
+        title: t.writing,
       },
       {
         id: `mmse_pentagons_${lang}`,
         type: "mmse_pentagons",
         lang,
-        title: lang === "en" ? "Intersecting Pentagons" : "رسم الأشكال الهندسية / 交叉五角形 / Pentágonos intersectados",
+        title: t.pentagons,
       },
     ];
   }
@@ -382,6 +464,7 @@ export default function TestPage() {
   // Form Answer State
   const [answers, setAnswers] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Fetch Auth context
   useEffect(() => {
@@ -463,9 +546,36 @@ export default function TestPage() {
     setStarted(true);
   }
 
+  function handleSpeak(text, locale) {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = locale;
+      utterance.rate = 0.85;
+      utterance.onend = () => {
+        setIsSpeaking(false);
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+      };
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  function handleStopSpeech() {
+    stopSpeech();
+    setIsSpeaking(false);
+  }
+
   function handleExit(confirm) {
     if (confirm) {
-      stopSpeech();
+      handleStopSpeech();
       if (user) {
         localStorage.removeItem(`tash_draft_${user.userId}`);
       }
@@ -476,26 +586,33 @@ export default function TestPage() {
   }
 
   function nextStep() {
-    stopSpeech();
-    if (stepIndex < allSteps.length - 1) {
-      setStepIndex((prev) => prev + 1);
-    } else {
-      handleSubmit();
-    }
+    handleStopSpeech();
+    setStepIndex((prev) => {
+      if (prev < allSteps.length - 1) {
+        return prev + 1;
+      } else {
+        // Trigger submit in the next tick
+        setTimeout(() => handleSubmit(), 0);
+        return prev;
+      }
+    });
   }
 
   function prevStep() {
-    stopSpeech();
-    if (stepIndex > 0) {
-      setStepIndex((prev) => prev - 1);
-    }
+    handleStopSpeech();
+    setStepIndex((prev) => {
+      if (prev > 0) {
+        return prev - 1;
+      }
+      return prev;
+    });
   }
 
   // Unified Step Timer Hook
   const [stepTimeLeft, setStepTimeLeft] = useState(null);
 
   useEffect(() => {
-    stopSpeech();
+    handleStopSpeech();
     
     if (!started || !allSteps[stepIndex]) {
       setStepTimeLeft(null);
@@ -515,24 +632,32 @@ export default function TestPage() {
       limit = 20; // 20 seconds for Transition screen
     }
 
-    if (limit !== null) {
-      setStepTimeLeft(limit);
-      const timer = setInterval(() => {
-        setStepTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            nextStep();
-            return null;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    } else {
+    if (limit === null) {
       setStepTimeLeft(null);
+      return;
     }
+
+    setStepTimeLeft(limit);
+
+    const timer = setInterval(() => {
+      setStepTimeLeft((prev) => {
+        if (prev === null) return null;
+        if (prev <= 1) {
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, [stepIndex, started, allSteps]);
+
+  // Handle auto-advance when timer reaches 0
+  useEffect(() => {
+    if (started && stepTimeLeft === 0) {
+      nextStep();
+    }
+  }, [stepTimeLeft, started]);
 
 
   async function handleSubmit() {
@@ -637,31 +762,20 @@ export default function TestPage() {
             
             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
               <span className="eyebrow" style={{ color: "#91d6cd", fontWeight: "800", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1px" }}>
-                {started ? `${testType.toUpperCase()} Test` : "Assessment Setup"}
+                {started ? `${testType === "mini-cog" ? "Mini-Cog" : "MMSE"} Assessment` : "Assessment Setup"}
               </span>
               <h1 style={{ margin: 0, fontSize: "1.45rem", fontWeight: 700 }}>
-                {started ? (currentStep.type === "transition" ? "Transition" : currentStep.title) : "Configure Assessment"}
+                {started ? (
+                  currentStep.type === "transition" 
+                    ? "Transition" 
+                    : `Part ${currentStep.lang === "en" ? "1 (English)" : `2 (${languageTests[currentStep.lang]?.nativeLabel || currentStep.lang.toUpperCase()})`}`
+                ) : (
+                  "Configure Assessment"
+                )}
               </h1>
             </div>
           </div>
 
-          {/* Progress bar metrics */}
-          {started && currentStep.type !== "transition" && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-              <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "#91d6cd" }}>
-                Part {currentStep.lang === "en" ? "1 (English)" : `2 (${currentStep.lang.toUpperCase()})`}
-              </span>
-              <span style={{ fontSize: "0.75rem", color: "#c9ddd8" }}>
-                Step {allSteps.filter((s, idx) => idx <= stepIndex && s.type !== "transition" && s.lang === currentStep.lang).length} of{" "}
-                {allSteps.filter((s) => s.lang === currentStep.lang).length}
-              </span>
-              {stepTimeLeft !== null && (
-                <span style={{ fontSize: "0.75rem", color: "#fda29b", fontWeight: "bold", background: "rgba(253, 162, 155, 0.15)", padding: "2px 6px", borderRadius: "4px", marginTop: "4px" }}>
-                  Time Left: {Math.floor(stepTimeLeft / 60)}:{(stepTimeLeft % 60).toString().padStart(2, "0")}
-                </span>
-              )}
-            </div>
-          )}
         </div>
       </header>
 
@@ -685,6 +799,7 @@ export default function TestPage() {
                   borderRadius: "8px",
                   padding: "10px 16px",
                   fontWeight: 600,
+                  color: "var(--muted)",
                   cursor: "pointer",
                 }}
               >
@@ -914,6 +1029,47 @@ export default function TestPage() {
                 return (
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "24px" }}>
                     
+                    {/* Card Header with Step Title, Progress, and Time Limit */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", paddingBottom: "16px", borderBottom: "1px solid var(--line)" }}>
+                      <div>
+                        <span style={{ fontSize: "0.75rem", color: "var(--teal)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          Step {allSteps.filter((s, idx) => idx <= stepIndex && s.type !== "transition" && s.lang === currentStep.lang).length} of {allSteps.filter((s) => s.lang === currentStep.lang).length}
+                        </span>
+                        <h2 style={{ fontSize: "1.35rem", fontWeight: 700, color: "var(--ink)", margin: "4px 0 0 0" }}>
+                          {currentStep.title}
+                        </h2>
+                      </div>
+                      {stepTimeLeft !== null && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            fontSize: "0.9rem",
+                            fontWeight: 700,
+                            color: stepTimeLeft <= 10 ? "#b42318" : "#0f766e",
+                            background: stepTimeLeft <= 10 ? "#fef3f2" : "#f0fdfa",
+                            border: `1px solid ${stepTimeLeft <= 10 ? "#fda29b" : "#99f6e4"}`,
+                            padding: "6px 12px",
+                            borderRadius: "20px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: "8px",
+                              height: "8px",
+                              borderRadius: "50%",
+                              background: stepTimeLeft <= 10 ? "#b42318" : "#0f766e",
+                              display: "inline-block",
+                            }}
+                          />
+                          <span>
+                            Time Left: {Math.floor(stepTimeLeft / 60)}:{(stepTimeLeft % 60).toString().padStart(2, "0")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Header instruction with audio read-aloud options */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" }}>
                       <p style={{ fontSize: "1.02rem", color: "var(--ink)", fontWeight: 500, lineHeight: 1.5, flex: 1 }}>
@@ -923,10 +1079,10 @@ export default function TestPage() {
                       {details.voiceText && (
                         <div style={{ display: "flex", gap: "8px" }}>
                           <button
-                            onClick={() => speakInstruction(details.voiceText, details.voiceLocale)}
+                            onClick={() => handleSpeak(details.voiceText, details.voiceLocale)}
                             style={{
-                              background: "rgba(15, 118, 110, 0.08)",
-                              color: "var(--teal)",
+                              background: isSpeaking ? "rgba(180, 35, 24, 0.08)" : "rgba(15, 118, 110, 0.08)",
+                              color: isSpeaking ? "var(--red)" : "var(--teal)",
                               border: "none",
                               borderRadius: "8px",
                               padding: "8px 12px",
@@ -935,24 +1091,21 @@ export default function TestPage() {
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
-                              gap: "4px",
+                              gap: "6px",
+                              transition: "all 0.2s ease",
                             }}
                           >
-                            <Volume2 size={15} />
-                            Listen
-                          </button>
-                          <button
-                            onClick={stopSpeech}
-                            style={{
-                              background: "rgba(0,0,0,0.04)",
-                              color: "var(--muted)",
-                              border: "none",
-                              borderRadius: "8px",
-                              padding: "8px",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <Square size={14} fill="var(--muted)" />
+                            {isSpeaking ? (
+                              <>
+                                <Square size={13} fill="var(--red)" />
+                                Stop
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 size={15} />
+                                Listen
+                              </>
+                            )}
                           </button>
                         </div>
                       )}
