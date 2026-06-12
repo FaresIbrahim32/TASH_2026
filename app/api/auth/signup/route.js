@@ -1,7 +1,8 @@
-import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { cookies } from "next/headers";
 import { docClient, isAwsConfigured } from "../../../lib/dynamodb";
 import { hashPassword, signToken } from "../../../lib/auth";
+import crypto from "crypto";
 
 export async function POST(request) {
   if (!isAwsConfigured()) {
@@ -44,32 +45,18 @@ export async function POST(request) {
     }
 
     const tableName = "tash-core";
-    const userPK = `USER#${trimmedEmail}`;
+    const userId = "usr_" + crypto.randomUUID().replace(/-/g, "").substring(0, 16);
+    const userPK = `USER#${userId}`;
     const userSK = "METADATA";
+    const emailPK = `EMAIL#${trimmedEmail}`;
+    const emailSK = "LOOKUP";
 
-    // 1. Check if user already exists
-    const getResult = await docClient.send(
-      new GetCommand({
-        TableName: tableName,
-        Key: {
-          PK: userPK,
-          SK: userSK,
-        },
-      })
-    );
-
-    if (getResult.Item) {
-      return Response.json(
-        { message: "Email is already registered." },
-        { status: 400 }
-      );
-    }
-
-    // 2. Hash Password and Create User Item
+    // Hash Password and Create User Item
     const passwordHash = hashPassword(password);
     const userItem = {
       PK: userPK,
       SK: userSK,
+      userId,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: trimmedEmail,
@@ -81,17 +68,37 @@ export async function POST(request) {
       createdAt: new Date().toISOString(),
     };
 
-    // 3. Put Item with Condition to prevent race-condition duplicates
+    // Use a DynamoDB Transaction to verify email uniqueness and create the user
     await docClient.send(
-      new PutCommand({
-        TableName: tableName,
-        Item: userItem,
-        ConditionExpression: "attribute_not_exists(PK)",
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: tableName,
+              Item: {
+                PK: emailPK,
+                SK: emailSK,
+                userId,
+                email: trimmedEmail,
+                createdAt: new Date().toISOString(),
+              },
+              ConditionExpression: "attribute_not_exists(PK)",
+            },
+          },
+          {
+            Put: {
+              TableName: tableName,
+              Item: userItem,
+              ConditionExpression: "attribute_not_exists(PK)",
+            },
+          },
+        ],
       })
     );
 
-    // 4. Create session token
+    // Create session token with immutable userId
     const sessionPayload = {
+      userId: userItem.userId,
       email: userItem.email,
       firstName: userItem.firstName,
       lastName: userItem.lastName,
@@ -99,7 +106,7 @@ export async function POST(request) {
     };
     const token = signToken(sessionPayload);
 
-    // 5. Set HTTP-Only Cookie
+    // Set HTTP-Only Cookie
     const cookieStore = await cookies();
     cookieStore.set({
       name: "tash_session",
@@ -115,6 +122,7 @@ export async function POST(request) {
       {
         message: "User registered successfully.",
         user: {
+          userId: userItem.userId,
           firstName: userItem.firstName,
           lastName: userItem.lastName,
           email: userItem.email,
@@ -127,7 +135,10 @@ export async function POST(request) {
     );
   } catch (error) {
     console.error("Sign-up API error:", error);
-    if (error.name === "ConditionalCheckFailedException") {
+    if (
+      error.name === "TransactionCanceledException" &&
+      error.message.includes("ConditionalCheckFailed")
+    ) {
       return Response.json(
         { message: "Email is already registered." },
         { status: 400 }
@@ -139,3 +150,4 @@ export async function POST(request) {
     );
   }
 }
+

@@ -20,12 +20,12 @@ export async function GET() {
     }
 
     const payload = verifyToken(sessionCookie.value);
-    if (!payload || !payload.email) {
+    if (!payload || !payload.userId) {
       return Response.json({ message: "Invalid or expired session." }, { status: 401 });
     }
 
     const tableName = "tash-core";
-    const userPK = `USER#${payload.email}`;
+    const userPK = `USER#${payload.userId}`;
     const userSK = "METADATA";
 
     // Fetch fresh user data from DynamoDB
@@ -48,6 +48,7 @@ export async function GET() {
       {
         authenticated: true,
         user: {
+          userId: user.userId,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,

@@ -24,10 +24,33 @@ export async function POST(request) {
 
     const trimmedEmail = email.trim().toLowerCase();
     const tableName = "tash-core";
-    const userPK = `USER#${trimmedEmail}`;
+    const emailPK = `EMAIL#${trimmedEmail}`;
+    const emailSK = "LOOKUP";
+
+    // 1. Get userId from email lookup
+    const lookupResult = await docClient.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: {
+          PK: emailPK,
+          SK: emailSK,
+        },
+      })
+    );
+
+    const lookupItem = lookupResult.Item;
+    if (!lookupItem || !lookupItem.userId) {
+      return Response.json(
+        { message: "Invalid email or password." },
+        { status: 401 }
+      );
+    }
+
+    const userId = lookupItem.userId;
+    const userPK = `USER#${userId}`;
     const userSK = "METADATA";
 
-    // 1. Fetch user item from DynamoDB
+    // 2. Fetch user metadata item from DynamoDB
     const result = await docClient.send(
       new GetCommand({
         TableName: tableName,
@@ -46,7 +69,7 @@ export async function POST(request) {
       );
     }
 
-    // 2. Verify hashed password
+    // 3. Verify hashed password
     const isPasswordCorrect = verifyPassword(password, user.passwordHash);
     if (!isPasswordCorrect) {
       return Response.json(
@@ -55,14 +78,16 @@ export async function POST(request) {
       );
     }
 
-    // 3. Create session token
+    // 4. Create session token
     const sessionPayload = {
+      userId: user.userId,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
     };
     const token = signToken(sessionPayload);
+
 
     // 4. Set HTTP-Only Cookie
     const cookieStore = await cookies();
