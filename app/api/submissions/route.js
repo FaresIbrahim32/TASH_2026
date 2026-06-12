@@ -13,54 +13,28 @@ const optionalNumber = (min, max) =>
   );
 
 const SubmissionSchema = z.object({
+  testType: z.enum(["mini-cog", "mmse"]).default("mini-cog"),
+  secondaryLanguage: z.string().optional().default(""),
   patient: z.object({
     identifier: z.string().min(1),
     age: optionalNumber(0, 125),
-    firstLanguage: z.string().min(1),
-    interpreterUsed: z.boolean().default(false),
+    gender: z.string().optional().default(""),
     educationYears: optionalNumber(0, 40),
-    culturalContext: z.string().optional().default(""),
+    countryOrRegion: z.string().optional().default(""),
   }),
-  answers: z.object({
-    wordRecallEnglish: z.string().optional().default(""),
-    wordRecallFirstLanguage: z.string().optional().default(""),
-    clockNotesEnglish: z.string().optional().default(""),
-    clockNotesFirstLanguage: z.string().optional().default(""),
-    clockDrawingDataUrl: z.string().optional().default(""),
-    clinicianNotes: z.string().optional().default(""),
-    recallScore: optionalNumber(0, 3),
-    clockScore: optionalNumber(0, 2),
-  }),
+  answers: z.record(z.any()),
 });
 
-function normalizeOptionalNumber(value) {
-  return value === "" || value === undefined ? undefined : Number(value);
-}
-
 function normalizeSubmission(payload) {
-  const firstLanguage = payload.patient.firstLanguage;
-  const rendered = ["en"];
-
-  if (firstLanguage !== "en" && languageTests[firstLanguage]?.imported) {
-    rendered.push(firstLanguage);
-  }
-
-  const recallScore = normalizeOptionalNumber(payload.answers.recallScore);
-  const clockScore = normalizeOptionalNumber(payload.answers.clockScore);
-
   return {
     patient: {
       ...payload.patient,
-      age: normalizeOptionalNumber(payload.patient.age),
-      educationYears: normalizeOptionalNumber(payload.patient.educationYears),
+      age: payload.patient.age !== undefined ? Number(payload.patient.age) : undefined,
+      educationYears: payload.patient.educationYears !== undefined ? Number(payload.patient.educationYears) : undefined,
     },
-    testsRendered: rendered,
-    answers: {
-      ...payload.answers,
-      recallScore,
-      clockScore,
-      screeningFlag: calculateMiniCogFlag({ recallScore, clockScore }),
-    },
+    testType: payload.testType,
+    secondaryLanguage: payload.secondaryLanguage,
+    answers: payload.answers,
   };
 }
 
@@ -105,8 +79,8 @@ export async function POST(request) {
       SK: `SUBMISSION#${timestamp}`,
       submissionId,
       userId: payload.userId,
-      testType: "mini-cog",
-      testsRendered: submission.testsRendered,
+      testType: submission.testType,
+      secondaryLanguage: submission.secondaryLanguage,
       patient: submission.patient,
       answers: submission.answers,
       createdAt: timestamp,
