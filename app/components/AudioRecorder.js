@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Play, Pause, RotateCcw, Check, AlertCircle } from "lucide-react";
 
-export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, instruction = "Click record and speak clearly" }) {
+export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, instruction = "Click record and speak clearly", lang = "en" }) {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -11,6 +11,63 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(maxDurationSeconds);
   const [loading, setLoading] = useState(false);
+
+  const translations = {
+    en: {
+      startRecording: "Start Recording",
+      stopRecording: "Stop Recording",
+      playRecording: "Play Recording",
+      pauseRecording: "Pause",
+      retake: "Retake",
+      confirm: "Confirm Response",
+      saved: "Recording Saved Successfully",
+      review: "Press Play to review your response.",
+      ready: "Microphone Ready",
+      recordingText: "Recording... speak now. Click Stop when finished.",
+      denied: "Microphone access denied. Please verify your browser permissions and try again."
+    },
+    es: {
+      startRecording: "Iniciar grabación",
+      stopRecording: "Detener grabación",
+      playRecording: "Reproducir grabación",
+      pauseRecording: "Pausar",
+      retake: "Volver a grabar",
+      confirm: "Confirmar respuesta",
+      saved: "Grabación guardada con éxito",
+      review: "Presione Reproducir para revisar su respuesta.",
+      ready: "Micrófono listo",
+      recordingText: "Grabando... hable ahora. Haga clic en Detener cuando termine.",
+      denied: "Acceso al micrófono denegado. Verifique los permisos de su navegador."
+    },
+    "zh-TW": {
+      startRecording: "開始錄音",
+      stopRecording: "停止錄音",
+      playRecording: "播放錄音",
+      pauseRecording: "暫停",
+      retake: "重新錄製",
+      confirm: "確認回答",
+      saved: "錄音儲存成功",
+      review: "請按播放鍵以確認您的回答。",
+      ready: "麥克風已就緒",
+      recordingText: "正在錄音中...請大聲說。完成後請按停止錄音。",
+      denied: "麥克風存取被拒。請確認瀏覽器的麥克風權限。"
+    },
+    ar: {
+      startRecording: "بدء التسجيل",
+      stopRecording: "إيقاف التسجيل",
+      playRecording: "تشغيل التسجيل",
+      pauseRecording: "إيقاف مؤقت",
+      retake: "إعادة التسجيل",
+      confirm: "تأكيد الإجابة",
+      saved: "تم حفظ التسجيل بنجاح",
+      review: "اضغط على تشغيل لمراجعة إجابتك.",
+      ready: "الميكروفون جاهز",
+      recordingText: "جاري التسجيل... تحدث الآن. اضغط على إيقاف عند الانتهاء.",
+      denied: "تم رفض الوصول إلى الميكروفون. يرجى التحقق من أذونات متصفحك."
+    }
+  };
+
+  const t = translations[lang] || translations.en;
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -164,7 +221,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
       startTimer();
     } catch (err) {
       console.error("Microphone access error:", err);
-      setError("Microphone access denied. Please verify your browser permissions and try again.");
+      setError(t.denied);
     } finally {
       setLoading(false);
     }
@@ -323,10 +380,10 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
           /* Waveform display for playback review */
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
             <span style={{ fontSize: "0.85rem", color: "var(--teal)", fontWeight: 600 }}>
-              Recording Saved Successfully
+              {t.saved}
             </span>
             <span style={{ fontSize: "0.75rem", color: "var(--muted)" }}>
-              Press Play to review your response.
+              {t.review}
             </span>
           </div>
         ) : (
@@ -334,7 +391,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
             <Mic size={24} style={{ color: "var(--muted)" }} />
             <span style={{ fontSize: "0.82rem", color: "var(--muted)", fontWeight: 500 }}>
-              Microphone Ready
+              {t.ready}
             </span>
           </div>
         )}
@@ -381,7 +438,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
         </div>
       ) : (
         <p style={{ color: "var(--muted)", fontSize: "0.85rem", textAlign: "center", margin: 0 }}>
-          {isRecording ? "Recording... speak now. Click Stop when finished." : instruction}
+          {isRecording ? t.recordingText : instruction}
         </p>
       )}
 
@@ -420,7 +477,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
             }}
           >
             <Square size={16} fill="#ffffff" />
-            Stop Recording
+            {t.stopRecording}
           </button>
         ) : audioUrl ? (
           /* PLAYBACK & CONFIRM Controls */
@@ -444,7 +501,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
               }}
             >
               {isPlaying ? <Pause size={16} fill="var(--teal)" /> : <Play size={16} fill="var(--teal)" />}
-              {isPlaying ? "Pause" : "Play Recording"}
+              {isPlaying ? t.pauseRecording : t.playRecording}
             </button>
 
             {/* Retake */}
@@ -466,7 +523,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
               }}
             >
               <RotateCcw size={16} />
-              Retake
+              {t.retake}
             </button>
 
             {/* Confirm */}
@@ -489,7 +546,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
               }}
             >
               <Check size={16} />
-              Confirm Response
+              {t.confirm}
             </button>
           </>
         ) : (
@@ -517,7 +574,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
             onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
           >
             <Mic size={18} fill="#ffffff" />
-            Start Recording
+            {t.startRecording}
           </button>
         )}
       </div>

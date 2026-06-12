@@ -3,12 +3,49 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, RotateCcw, Check, AlertCircle } from "lucide-react";
 
-export default function WebcamCapture({ onCapture, instruction = "Align your drawing inside the frame and take a photo" }) {
+export default function WebcamCapture({ onCapture, instruction = "Align your drawing inside the frame and take a photo", lang = "en" }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [capturedImage, setCapturedImage] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const translations = {
+    en: {
+      starting: "Starting camera...",
+      confirmPhoto: "Confirm Photo",
+      retakePhoto: "Retake Photo",
+      instruction: "Verify that your drawing is clearly visible before continuing.",
+      retry: "Retry Camera Access",
+      errorPrefix: "Could not access the camera. Please ensure camera permissions are enabled in your browser settings and try again."
+    },
+    es: {
+      starting: "Iniciando cámara...",
+      confirmPhoto: "Confirmar foto",
+      retakePhoto: "Volver a tomar foto",
+      instruction: "Verifique que su dibujo sea claramente visible antes de continuar.",
+      retry: "Reintentar acceso a cámara",
+      errorPrefix: "No se pudo acceder a la cámara. Asegúrese de que los permisos de la cámara estén habilitados en la configuración de su navegador y vuelva a intentarlo."
+    },
+    "zh-TW": {
+      starting: "正在啟動相機...",
+      confirmPhoto: "確認照片",
+      retakePhoto: "重新拍攝",
+      instruction: "請在繼續之前，確認您的圖畫清晰可見。",
+      retry: "重新嘗試相機權限",
+      errorPrefix: "無法存取相機。請確認您的瀏覽器已啟用相機權限，然後再試一次。"
+    },
+    ar: {
+      starting: "جاري تشغيل الكاميرا...",
+      confirmPhoto: "تأكيد الصورة",
+      retakePhoto: "إعادة التقاط الصورة",
+      instruction: "تأكد من أن رسمتك واضحة وجلية قبل المتابعة.",
+      retry: "إعادة محاولة الوصول للكاميرا",
+      errorPrefix: "تعذر الوصول إلى الكاميرا. يرجى التأكد من تمكين أذونات الكاميرا في إعدادات متصفحك والمحاولة مرة أخرى."
+    }
+  };
+
+  const t = translations[lang] || translations.en;
 
   const capturedImageRef = useRef(null);
   const onCaptureRef = useRef(onCapture);
@@ -56,9 +93,7 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
       setLoading(false);
     } catch (err) {
       console.error("Camera access error:", err);
-      setError(
-        "Could not access the camera. Please ensure camera permissions are enabled in your browser settings and try again."
-      );
+      setError(t.errorPrefix);
       setLoading(false);
     }
   }
@@ -205,7 +240,7 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
         {/* Floating status overlays */}
         {loading && !capturedImage && !error && (
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", zIndex: 10 }}>
-            <p style={{ fontSize: "0.92rem", fontWeight: 600 }}>Starting camera...</p>
+            <p style={{ fontSize: "0.92rem", fontWeight: 600 }}>{t.starting}</p>
           </div>
         )}
 
@@ -226,7 +261,7 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
                 cursor: "pointer"
               }}
             >
-              Retry Camera Access
+              {t.retry}
             </button>
           </div>
         )}
@@ -235,7 +270,7 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
       {/* Helper instruction */}
       {!error && (
         <p style={{ color: "var(--muted)", fontSize: "0.85rem", textAlign: "center", margin: 0, lineHeight: 1.4 }}>
-          {capturedImage ? "Verify that your drawing is clearly visible before continuing." : instruction}
+          {capturedImage ? t.instruction : instruction}
         </p>
       )}
 
@@ -263,7 +298,7 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
                 }}
               >
                 <RotateCcw size={16} />
-                Retake Photo
+                {t.retakePhoto}
               </button>
 
               {/* Confirm */}
@@ -286,7 +321,7 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
                 }}
               >
                 <Check size={16} />
-                Confirm Photo
+                {t.confirmPhoto}
               </button>
             </>
           ) : (

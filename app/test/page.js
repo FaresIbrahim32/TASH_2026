@@ -718,6 +718,40 @@ export default function TestPage() {
   // Active step in progression
   const currentStep = allSteps[stepIndex];
 
+  const uiTranslations = {
+    en: {
+      next: "Next",
+      submit: "Submit Assessment",
+      submitting: "Submitting...",
+      listen: "Listen",
+      stop: "Stop",
+    },
+    es: {
+      next: "Siguiente",
+      submit: "Enviar evaluación",
+      submitting: "Enviando...",
+      listen: "Escuchar",
+      stop: "Detener",
+    },
+    "zh-TW": {
+      next: "下一步",
+      submit: "提交評估",
+      submitting: "提交中...",
+      listen: "聆聽",
+      stop: "停止",
+    },
+    ar: {
+      next: "التالي",
+      submit: "إرسال التقييم",
+      submitting: "جاري الإرسال...",
+      listen: "استمع",
+      stop: "إيقاف",
+    }
+  };
+
+  const currentLang = currentStep?.lang || "en";
+  const t = uiTranslations[currentLang] || uiTranslations.en;
+
   return (
     <main className="appShell" style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#f6f7f4" }}>
       {/* Header top bar */}
@@ -1098,12 +1132,12 @@ export default function TestPage() {
                             {isSpeaking ? (
                               <>
                                 <Square size={13} fill="var(--red)" />
-                                Stop
+                                {t.stop}
                               </>
                             ) : (
                               <>
                                 <Volume2 size={15} />
-                                Listen
+                                {t.listen}
                               </>
                             )}
                           </button>
@@ -1147,6 +1181,7 @@ export default function TestPage() {
                       {/* 2. Mini-Cog Clock Drawing */}
                       {currentStep.type === "clock" && (
                         <WebcamCapture
+                          lang={currentStep.lang}
                           instruction={details.text}
                           onCapture={(dataUrl) => updateAnswer(`clockDrawing_${currentStep.lang}`, dataUrl)}
                         />
@@ -1155,6 +1190,7 @@ export default function TestPage() {
                       {/* 3. Mini-Cog Recall */}
                       {currentStep.type === "recall" && (
                         <AudioRecorder
+                          lang={currentStep.lang}
                           instruction={details.text}
                           onConfirm={(audioDataUrl) => updateAnswer(`recallAudio_${currentStep.lang}`, audioDataUrl)}
                         />
@@ -1318,6 +1354,7 @@ export default function TestPage() {
                           </div>
                           
                           <AudioRecorder
+                            lang={currentStep.lang}
                             instruction="Click start and repeat the words"
                             onConfirm={(audioDataUrl) => updateAnswer(`registrationAudio_${currentStep.lang}`, audioDataUrl)}
                           />
@@ -1348,6 +1385,7 @@ export default function TestPage() {
                       {/* 8. MMSE Recall */}
                       {currentStep.type === "mmse_recall" && (
                         <AudioRecorder
+                          lang={currentStep.lang}
                           instruction="Record yourself speaking the three words"
                           onConfirm={(audioDataUrl) => updateAnswer(`recallAudio_${currentStep.lang}`, audioDataUrl)}
                         />
@@ -1399,6 +1437,7 @@ export default function TestPage() {
                             {details.phrase}
                           </strong>
                           <AudioRecorder
+                            lang={currentStep.lang}
                             instruction="Repeat the phrase aloud"
                             onConfirm={(audioDataUrl) => updateAnswer(`repetitionAudio_${currentStep.lang}`, audioDataUrl)}
                           />
@@ -1494,6 +1533,7 @@ export default function TestPage() {
                           </div>
 
                           <WebcamCapture
+                            lang={currentStep.lang}
                             instruction={details.text}
                             onCapture={(dataUrl) => updateAnswer(`pentagonDrawing_${currentStep.lang}`, dataUrl)}
                           />
@@ -1549,12 +1589,12 @@ export default function TestPage() {
               }}
             >
               {isSubmitting ? (
-                "Submitting..."
+                t.submitting
               ) : stepIndex === allSteps.length - 1 ? (
-                "Submit Assessment"
+                t.submit
               ) : (
                 <>
-                  Next
+                  {t.next}
                   <ChevronRight size={16} />
                 </>
               )}
