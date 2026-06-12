@@ -45,7 +45,14 @@ export const languageTests = {
     pdf: "/tests/mini-cog-ar.pdf",
     pages: ["/tests/pages/mini-cog-ar-1.png", "/tests/pages/mini-cog-ar-2.png"],
     voiceLocale: "ar-SA",
-    wordLists: [["بيت", "قطة", "أخضر"]],
+    wordLists: [
+      ["موز", "شروق", "كرسي"],
+      ["قائد", "موسم", "طاولة"],
+      ["قرية", "مطبخ", "طفل"],
+      ["نهر", "وطن", "إصبع"],
+      ["قبطان", "حديقة", "صورة"],
+      ["ابنة", "سماء", "جبل"],
+    ],
     ui: {
       instructionsTitle: "تعليمات العربية",
       stepLabel: "الخطوة",

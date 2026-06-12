@@ -160,7 +160,7 @@ function getStepDetails(step, wordListIndex) {
       text = "請仔細閱讀並記住這三個詞彙：";
       voiceText = `請仔細聽清楚，我等一下會說出三個名詞，請馬上複誦給我聽，然後儘量背下來。這三個名詞是：${words.join("、")}。請馬上複誦。`;
     } else if (lang === "ar") {
-      words = languageTests.ar.wordLists[0];
+      words = languageTests.ar.wordLists[wordVersionIndex];
       voiceLocale = "ar-SA";
       text = "يرجى قراءة وحفظ هذه الكلمات الثلاث:";
       voiceText = `سوف أقول ثلاث كلمات وأريدك أن تتذكرها الآن وفيما بعد. الكلمات هي: ${words.join("، ")}. قلها لي الآن.`;
@@ -491,6 +491,50 @@ export default function TestPage() {
     }
   }
 
+  // Unified Step Timer Hook
+  const [stepTimeLeft, setStepTimeLeft] = useState(null);
+
+  useEffect(() => {
+    stopSpeech();
+    
+    if (!started || !allSteps[stepIndex]) {
+      setStepTimeLeft(null);
+      return;
+    }
+
+    const currentStep = allSteps[stepIndex];
+    let limit = null;
+
+    if (currentStep.type === "registration") {
+      limit = 30; // 30 seconds for Word presentation
+    } else if (currentStep.type === "clock") {
+      limit = 180; // 3 minutes for Clock drawing
+    } else if (currentStep.type === "recall") {
+      limit = 30; // 30 seconds for Word recall
+    } else if (currentStep.type === "transition") {
+      limit = 20; // 20 seconds for Transition screen
+    }
+
+    if (limit !== null) {
+      setStepTimeLeft(limit);
+      const timer = setInterval(() => {
+        setStepTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            nextStep();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    } else {
+      setStepTimeLeft(null);
+    }
+  }, [stepIndex, started, allSteps]);
+
+
   async function handleSubmit() {
     setIsSubmitting(true);
     try {
@@ -611,6 +655,11 @@ export default function TestPage() {
                 Step {allSteps.filter((s, idx) => idx <= stepIndex && s.type !== "transition" && s.lang === currentStep.lang).length} of{" "}
                 {allSteps.filter((s) => s.lang === currentStep.lang).length}
               </span>
+              {stepTimeLeft !== null && (
+                <span style={{ fontSize: "0.75rem", color: "#fda29b", fontWeight: "bold", background: "rgba(253, 162, 155, 0.15)", padding: "2px 6px", borderRadius: "4px", marginTop: "4px" }}>
+                  Time Left: {Math.floor(stepTimeLeft / 60)}:{(stepTimeLeft % 60).toString().padStart(2, "0")}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -850,6 +899,9 @@ export default function TestPage() {
                   </strong>
                   .
                 </p>
+                <div style={{ color: "var(--red)", fontSize: "0.92rem", fontWeight: "bold", background: "rgba(180, 35, 24, 0.06)", padding: "10px 18px", borderRadius: "8px", border: "1px solid rgba(180, 35, 24, 0.15)", margin: "10px 0" }}>
+                  Beginning Part 2 automatically in {stepTimeLeft} seconds...
+                </div>
                 <p style={{ color: "var(--muted)", fontSize: "0.88rem", fontStyle: "italic" }}>
                   Please repeat the exact same instructions and tasks as they appear in the new language.
                 </p>
@@ -1304,22 +1356,26 @@ export default function TestPage() {
 
           {/* Navigation Controls footer */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <button
-              onClick={prevStep}
-              disabled={stepIndex === 0 || isSubmitting}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--line)",
-                borderRadius: "8px",
-                padding: "10px 20px",
-                fontSize: "0.9rem",
-                fontWeight: 600,
-                color: stepIndex === 0 ? "var(--line)" : "var(--muted)",
-                cursor: stepIndex === 0 ? "default" : "pointer",
-              }}
-            >
-              Previous
-            </button>
+            {started ? (
+              <div />
+            ) : (
+              <button
+                onClick={prevStep}
+                disabled={stepIndex === 0 || isSubmitting}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--line)",
+                  borderRadius: "8px",
+                  padding: "10px 20px",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  color: stepIndex === 0 ? "var(--line)" : "var(--muted)",
+                  cursor: stepIndex === 0 ? "default" : "pointer",
+                }}
+              >
+                Previous
+              </button>
+            )}
 
             <button
               onClick={nextStep}
