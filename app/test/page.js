@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -593,6 +593,7 @@ export default function TestPage() {
   const [commandClicks, setCommandClicks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const activeAudioRef = useRef(null);
 
   // Fetch Auth context
   useEffect(() => {
@@ -679,17 +680,49 @@ export default function TestPage() {
     setStarted(true);
   }
 
-  function handleSpeak(text, locale) {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
+  function stopAllSpeech() {
+    if (activeAudioRef.current) {
+      try {
+        activeAudioRef.current.pause();
+      } catch (e) {}
+      activeAudioRef.current = null;
+    }
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  }
+
+  async function handleSpeak(text, locale) {
+    if (typeof window === "undefined") return;
 
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    } else {
-      window.speechSynthesis.cancel();
+      stopAllSpeech();
+      return;
+    }
+
+    stopAllSpeech();
+
+    const playNativeSpeech = () => {
+      if (!window.speechSynthesis) return;
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = locale;
       utterance.rate = 0.85;
+
+      try {
+        const voices = window.speechSynthesis.getVoices();
+        const languagePrefix = locale.split("-")[0].toLowerCase();
+        const matchedVoice = voices.find((v) => 
+          v.lang.toLowerCase() === locale.toLowerCase() || 
+          v.lang.toLowerCase().startsWith(languagePrefix)
+        );
+        if (matchedVoice) {
+          utterance.voice = matchedVoice;
+        }
+      } catch (err) {
+        console.warn("Explicit speech synthesis voice matching failed:", err);
+      }
+
       utterance.onend = () => {
         setIsSpeaking(false);
       };
@@ -698,12 +731,49 @@ export default function TestPage() {
       };
       setIsSpeaking(true);
       window.speechSynthesis.speak(utterance);
+    };
+
+    const playAudioUrl = (url) => {
+      const audio = new Audio(url);
+      activeAudioRef.current = audio;
+      audio.onended = () => {
+        setIsSpeaking(false);
+        activeAudioRef.current = null;
+      };
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        activeAudioRef.current = null;
+        playNativeSpeech();
+      };
+      setIsSpeaking(true);
+      audio.play().catch((err) => {
+        console.warn("Audio play failed, falling back to native SpeechSynthesis:", err);
+        playNativeSpeech();
+      });
+    };
+
+    try {
+      let langPrefix = locale.split("-")[0];
+      if (langPrefix === "zh") {
+        langPrefix = "zh-TW";
+      }
+      const queryUrl = `/api/tts?language=${encodeURIComponent(langPrefix)}&text=${encodeURIComponent(text)}`;
+      const response = await fetch(queryUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        playAudioUrl(audioUrl);
+      } else {
+        playNativeSpeech();
+      }
+    } catch (err) {
+      console.warn("Hybrid speak failed, using browser SpeechSynthesis fallback:", err);
+      playNativeSpeech();
     }
   }
 
   function handleStopSpeech() {
-    stopSpeech();
-    setIsSpeaking(false);
+    stopAllSpeech();
   }
 
   function handleExit(confirm) {

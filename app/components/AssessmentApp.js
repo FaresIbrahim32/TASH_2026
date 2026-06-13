@@ -32,21 +32,83 @@ const emptyForm = {
   },
 };
 
-function speakInstruction(text, locale) {
-  if (typeof window === "undefined" || !window.speechSynthesis) {
+let activeAudio = null;
+
+function stopSpeech() {
+  if (activeAudio) {
+    try {
+      activeAudio.pause();
+    } catch (e) {}
+    activeAudio = null;
+  }
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+async function speakInstruction(text, locale) {
+  if (typeof window === "undefined") {
     return;
   }
 
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = locale;
-  utterance.rate = 0.88;
-  window.speechSynthesis.speak(utterance);
-}
+  stopSpeech();
 
-function stopSpeech() {
-  if (typeof window !== "undefined" && window.speechSynthesis) {
-    window.speechSynthesis.cancel();
+  const playNativeSpeech = () => {
+    if (!window.speechSynthesis) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = locale;
+    utterance.rate = 0.88;
+
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      const languagePrefix = locale.split("-")[0].toLowerCase();
+      const matchedVoice = voices.find((v) => 
+        v.lang.toLowerCase() === locale.toLowerCase() || 
+        v.lang.toLowerCase().startsWith(languagePrefix)
+      );
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+      }
+    } catch (err) {
+      console.warn("Explicit speech synthesis voice matching failed:", err);
+    }
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const playAudioUrl = (url) => {
+    const audio = new Audio(url);
+    activeAudio = audio;
+    audio.onended = () => {
+      if (activeAudio === audio) activeAudio = null;
+    };
+    audio.onerror = () => {
+      if (activeAudio === audio) activeAudio = null;
+      playNativeSpeech();
+    };
+    audio.play().catch((err) => {
+      console.warn("Audio play failed, falling back to native SpeechSynthesis:", err);
+      playNativeSpeech();
+    });
+  };
+
+  try {
+    let langPrefix = locale.split("-")[0];
+    if (langPrefix === "zh") {
+      langPrefix = "zh-TW";
+    }
+    const queryUrl = `/api/tts?language=${encodeURIComponent(langPrefix)}&text=${encodeURIComponent(text)}`;
+    const response = await fetch(queryUrl);
+    if (response.ok) {
+      const blob = await response.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      playAudioUrl(audioUrl);
+    } else {
+      playNativeSpeech();
+    }
+  } catch (err) {
+    console.warn("Hybrid speak failed, using browser SpeechSynthesis fallback:", err);
+    playNativeSpeech();
   }
 }
 
