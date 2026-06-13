@@ -13,6 +13,8 @@ import {
   ChevronRight,
   AlertTriangle,
   X,
+  RotateCcw,
+  Check,
 } from "lucide-react";
 import WebcamCapture from "../components/WebcamCapture";
 import AudioRecorder from "../components/AudioRecorder";
@@ -295,19 +297,35 @@ function getStepDetails(step, wordListIndex) {
 
   // MMSE Localizations
   if (step.type === "mmse_temporal") {
-    let text = "Please answer the following questions regarding today's date:";
-    if (lang === "es") text = "Por favor, responda las siguientes preguntas sobre la fecha de hoy:";
-    if (lang === "zh-TW") text = "請回答關於今天日期的問題：";
-    if (lang === "ar") text = "يرجى الإجابة على الأسئلة التالية المتعلقة بتاريخ اليوم:";
-    return { text, voiceText: text, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
+    let text = "Please answer the following questions regarding today's date aloud (including year, season, month, date, and day of the week). Click record to speak:";
+    let voiceText = "Please answer the following questions regarding today's date aloud. State the year, the season, the month, the date, and the day of the week.";
+    if (lang === "es") {
+      text = "Por favor, responda en voz alta las siguientes preguntas sobre la fecha de hoy (incluyendo año, estación, mes, fecha y día de la semana). Haga clic en grabar para hablar:";
+      voiceText = "Por favor, responda en voz alta las siguientes preguntas sobre la fecha de hoy. Indique el año, la estación, el mes, la fecha y el día de la semana.";
+    } else if (lang === "zh-TW") {
+      text = "請大聲回答關於今天日期的問題（包括年份、季節、月份、日期和星期幾）。點擊錄音開始說話：";
+      voiceText = "請大聲回答關於今天日期的問題。請說出年份、季節、月份、日期和星期幾。";
+    } else if (lang === "ar") {
+      text = "يرجى الإجابة بصوت عالٍ على الأسئلة التالية المتعلقة بتاريخ اليوم (بما في ذلك السنة، الفصل، الشهر، التاريخ، ويوم الأسبوع). انقر على زر التسجيل للتحدث:";
+      voiceText = "يرجى الإجابة بصوت عالٍ على الأسئلة التالية المتعلقة بتاريخ اليوم. اذكر السنة، الفصل، الشهر، التاريخ، ويوم الأسبوع.";
+    }
+    return { text, voiceText, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
   }
 
   if (step.type === "mmse_spatial") {
-    let text = "Please enter the details about your current location:";
-    if (lang === "es") text = "Por favor, introduzca los detalles sobre su ubicación actual:";
-    if (lang === "zh-TW") text = "請輸入您目前所在位置的詳細資訊：";
-    if (lang === "ar") text = "يرجى إدخال التفاصيل حول موقعك الحالي:";
-    return { text, voiceText: text, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
+    let text = "Please describe your current location aloud (including state/region, county/district, city/town, building/address, and floor/room). Click record to speak:";
+    let voiceText = "Please describe your current location aloud. State the state or region, the county or district, the city or town, the building name or address, and the floor or room number.";
+    if (lang === "es") {
+      text = "Describa su ubicación actual en voz alta (incluyendo estado/región, condado/distrito, ciudad/pueblo, edificio/dirección y piso/habitación). Haga clic en grabar para hablar:";
+      voiceText = "Por favor, describa su ubicación actual en voz alta. Indique el estado o región, el condado o distrito, la ciudad o pueblo, el edificio o dirección, y el piso o número de habitación.";
+    } else if (lang === "zh-TW") {
+      text = "請大聲描述您目前所在的位置（包括省/州/區域、縣/區、城市/城鎮、建築物名稱/地址和樓層/房間號碼）。點擊錄音開始說話：";
+      voiceText = "請大聲描述您目前所在的位置。請說出省/州/區域、縣/區、城市/城鎮、建築物名稱/地址和樓層/房間號碼。";
+    } else if (lang === "ar") {
+      text = "يرجى وصف موقعك الحالي بصوت عالٍ (بما في ذلك الولاية/المنطقة، المحافظة/القضاء، المدينة/البلدة، اسم المبنى/العنوان، والطابق/رقم الغرفة). انقر على زر التسجيل للتحدث:";
+      voiceText = "يرجى وصف موقعك الحالي بصوت عالٍ. اذكر الولاية أو المنطقة، المحافظة أو القضاء، المدينة أو البلّدة، اسم المبنى أو العنوان، والطابق أو رقم الغرفة.";
+    }
+    return { text, voiceText, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
   }
 
   if (step.type === "mmse_registration") {
@@ -333,11 +351,19 @@ function getStepDetails(step, wordListIndex) {
   }
 
   if (step.type === "mmse_attention") {
-    let text = "Starting from 100, subtract 7 serially. Write down the 5 consecutive answers (e.g. 100 - 7 = 93, then 93 - 7, etc.):";
-    if (lang === "es") text = "Restar 7 de 100 sucesivamente. Escriba las 5 respuestas consecutivas:";
-    if (lang === "zh-TW") text = "從100開始，連續減去7。請依序輸入5個相減的答案：";
-    if (lang === "ar") text = "بدءاً من الرقم 100، اطرح 7 بشكل متتالي. اكتب الإجابات الخمس المتتالية:";
-    return { text, voiceText: text, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
+    let text = "Starting from 100, subtract 7 serially. Record yourself speaking the 5 consecutive answers aloud (e.g. 100 - 7 = 93, then 93 - 7, etc.). Click record to speak:";
+    let voiceText = "Starting from one hundred, subtract seven serially. Record yourself speaking the five consecutive answers aloud. For example, subtract seven from one hundred, then seven from that answer, and so on.";
+    if (lang === "es") {
+      text = "Restar 7 de 100 sucesivamente. Grábese diciendo las 5 respuestas consecutivas en voz alta (por ejemplo, 100 - 7 = 93, luego 93 - 7, etc.). Haga clic en grabar para hablar:";
+      voiceText = "Comenzando desde cien, reste siete sucesivamente. Grábese diciendo las cinco respuestas consecutivas en voz alta. Por ejemplo, reste siete de cien, luego reste siete de esa respuesta, y así sucesivamente.";
+    } else if (lang === "zh-TW") {
+      text = "從100開始，連續減去7。請錄下您大聲說出5個相減答案的聲音（例如：100 - 7 = 93，接著93 - 7等）。點擊錄音開始說話：";
+      voiceText = "從一百開始，連續減去七。請錄下您大聲說出五個相減答案的聲音。例如：一百減七，接著所得的答案再減七，以此類推。";
+    } else if (lang === "ar") {
+      text = "بدءاً من الرقم 100، اطرح 7 بشكل متتالي. سجل نفسك وأنت تنطق الإجابات الخمس المتتالية بصوت عالٍ (مثال: 100 - 7 = 93، ثم 93 - 7، إلخ). انقر على زر التسجيل للتحدث:";
+      voiceText = "بدءاً من الرقم مئة، اطرح سبعة بشكل متتالي. سجل نفسك وأنت تنطق الإجابات الخمس المتتالية بصوت عالٍ. على سبيل المثال، اطرح سبعة من مئة، ثم سبعة من الإجابة الناتجة، وهكذا.";
+    }
+    return { text, voiceText, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
   }
 
   if (step.type === "mmse_recall") {
@@ -358,72 +384,84 @@ function getStepDetails(step, wordListIndex) {
 
   if (step.type === "mmse_repetition") {
     let phrase = "No ifs, ands, or buts.";
-    let text = 'Repeat this phrase exactly as written: "No ifs, ands, or buts."';
+    let text = "Listen to the phrase read aloud and repeat it exactly as spoken. Click record to speak:";
+    let voiceText = "Please repeat the following phrase: No ifs, ands, or buts.";
     
     if (lang === "es") {
       phrase = "Es un día agradable y soleado, pero hace demasiado calor.";
-      text = 'Repita esta frase exactamente como está escrita: "Es un día agradable y soleado, pero hace demasiado calor."';
+      text = "Escuche la frase leída en voz alta y repítala exactamente como se dice. Haga clic en grabar para hablar:";
+      voiceText = "Por favor, repita la siguiente frase: Es un día agradable y soleado, pero hace demasiado calor.";
     } else if (lang === "zh-TW") {
       phrase = "沒有如果、並且、或但是";
-      text = '請完全按照寫好的句子進行複誦：「沒有如果、並且、或但是」';
+      text = "請聆聽唸出來的句子，並完全按照所聽到的進行複誦。點擊錄音開始說話：";
+      voiceText = "請複誦以下句子：沒有如果、並且、或但是。";
     } else if (lang === "ar") {
       phrase = "أن ، لن ، إذن ، كي";
-      text = 'كرر هذه العبارة تماماً كما هي مكتوبة: "أن ، لن ، إذن ، كي"';
+      text = "استمع إلى العبارة المقروءة بصوت عالٍ وكررها تماماً كما قيلت. انقر على زر التسجيل للتحدث:";
+      voiceText = "يرجى تكرار العبارة التالية: أن ، لن ، إذن ، كي";
     }
 
-    return { phrase, text, voiceText: `Please repeat the following phrase: ${phrase}`, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
+    return { phrase, text, voiceText, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
   }
 
   if (step.type === "mmse_command") {
-    let text = "Follow these three instructions carefully:";
+    let text = "Follow the instructions in order. First touch the green circle, second touch the red square, third touch the yellow triangle.";
+    let voiceText = "Follow these three instructions carefully. First, touch the green circle. Second, touch the red square. Third, touch the yellow triangle.";
     let commands = [
-      "Take a sheet of paper in your right hand.",
-      "Fold the sheet of paper in half.",
-      "Place the sheet of paper on the floor."
+      "Touch the green circle.",
+      "Touch the red square.",
+      "Touch the yellow triangle."
     ];
 
     if (lang === "es") {
-      text = "Siga estas tres instrucciones cuidadosamente:";
+      text = "Siga las instrucciones en orden. Primero toque el círculo verde, segundo toque el cuadrado rojo, tercero toque el triángulo amarillo.";
+      voiceText = "Siga estas tres instrucciones cuidadosamente. Primero, toque el círculo verde. Segundo, toque el cuadrado rojo. Tercero, toque el triángulo amarillo.";
       commands = [
-        "Tome la hoja de papel con su mano derecha.",
-        "Doble la hoja de papel por la mitad.",
-        "Coloque la hoja de papel en el suelo."
+        "Toque el círculo verde.",
+        "Toque el cuadrado rojo.",
+        "Toque el triángulo amarillo."
       ];
     } else if (lang === "zh-TW") {
-      text = "請仔細執行以下三個步驟：";
+      text = "請依序執行指令。第一，觸碰綠色圓形；第二，觸碰紅色正方形；第三，觸碰黃色三角形。";
+      voiceText = "請仔細執行以下三個步驟。第一，觸碰綠色圓形。第二，觸碰紅色正方形。第三，觸碰黃色三角形。";
       commands = [
-        "用您的右手拿這張紙。",
-        "將紙張對折。",
-        "將折好的紙放在地板上。"
+        "觸碰綠色圓形。",
+        "觸碰紅色正方形。",
+        "觸碰黃色三角形。"
       ];
     } else if (lang === "ar") {
-      text = "اتبع هذه التعليمات الثلاثة بدقة:";
+      text = "اتبع التعليمات بالترتيب. أولاً المس الدائرة الخضراء، ثانياً المس المربع الأحمر، ثالثاً المس المثلث الأصفر.";
+      voiceText = "اتبع هذه التعليمات الثلاثة بدقة. أولاً، المس الدائرة الخضراء. ثانياً، المس المربع الأحمر. ثالثاً، المس المثلث الأصفر.";
       commands = [
-        "خذ ورقة بيدك اليمنى.",
-        "اطوِ ورقة من المنتصف.",
-        "ضع ورقة على الأرض."
+        "المس الدائرة الخضراء.",
+        "المس المربع الأحمر.",
+        "المس المثلث الأصفر."
       ];
     }
 
-    return { text, commands, voiceText: text, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
+    return { text, commands, voiceText, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
   }
 
   if (step.type === "mmse_reading") {
-    let text = "Obey the command written below in bold. Press the confirmation button once completed:";
-    let commandText = "CLOSE YOUR EYES";
+    let text = "Read and obey the command written below in bold by tapping the correct shape:";
+    let commandText = "TAP THE ORANGE STAR";
+    let voiceText = "Read the command in bold on the screen and obey it by tapping the correct shape.";
 
     if (lang === "es") {
-      text = "Obedezca la orden escrita en negrita abajo. Presione confirmar una vez realizado:";
-      commandText = "CIERRE LOS OJOS";
+      text = "Lea y obedezca la orden escrita en negrita abajo tocando la forma correcta:";
+      commandText = "TOQUE LA ESTRELLA NARANJA";
+      voiceText = "Lea la orden escrita en negrita en la pantalla y obedézcala tocando la forma correcta.";
     } else if (lang === "zh-TW") {
-      text = "遵照下方粗體字顯示的指令動作。完成後請按確認按鈕：";
-      commandText = "閉上您的眼睛";
+      text = "閱讀並執行下方粗體顯示的指令，觸碰正確的圖形：";
+      commandText = "請觸碰橘色星星";
+      voiceText = "閱讀螢幕上粗體字顯示的指令，並透過觸碰正確的圖形來執行它。";
     } else if (lang === "ar") {
-      text = "نفذ الأمر المكتوب بالخط العريض أدناه. اضغط على تأكيد بمجرد الانتهاء:";
-      commandText = "أغمض عينيك";
+      text = "اقرأ ونفذ الأمر المكتوب بالخط العريض أدناه عن طريق لمس الشكل الصحيح:";
+      commandText = "المس النجمة البرتقالية";
+      voiceText = "اقرأ الأمر المكتوب بالخط العريض على الشاشة ونفذه عن طريق لمس الشكل الصحيح.";
     }
 
-    return { text, commandText, voiceText: text, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
+    return { text, commandText, voiceText, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
   }
 
   if (step.type === "mmse_writing") {
@@ -445,6 +483,95 @@ function getStepDetails(step, wordListIndex) {
   return { text: "" };
 }
 
+const COMMAND_SHAPES = [
+  { id: "circle", color: "#10b981", stroke: "#047857", label: "Green Circle" },
+  { id: "square", color: "#ef4444", stroke: "#b91c1c", label: "Red Square" },
+  { id: "triangle", color: "#f59e0b", stroke: "#d97706", label: "Yellow Triangle" },
+  { id: "pentagon", color: "#3b82f6", stroke: "#1d4ed8", label: "Blue Pentagon" },
+  { id: "star", color: "#f97316", stroke: "#c2410c", label: "Orange Star" },
+];
+
+function renderMiniShape(shapeId) {
+  const shape = COMMAND_SHAPES.find(s => s.id === shapeId);
+  if (!shape) return null;
+  return (
+    <span key={shapeId} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#fff", border: "1px solid var(--line)", borderRadius: "6px", padding: "4px", width: "28px", height: "28px" }}>
+      {shapeId === "circle" && <svg width="18" height="18" viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" fill={shape.color} /></svg>}
+      {shapeId === "square" && <svg width="18" height="18" viewBox="0 0 80 80"><rect x="4" y="4" width="72" height="72" rx="6" fill={shape.color} /></svg>}
+      {shapeId === "triangle" && <svg width="18" height="18" viewBox="0 0 80 80"><polygon points="40,4 76,72 4,72" fill={shape.color} /></svg>}
+      {shapeId === "pentagon" && <svg width="18" height="18" viewBox="0 0 80 80"><polygon points="40,4 76,30 62,72 18,72 4,30" fill={shape.color} /></svg>}
+      {shapeId === "star" && <svg width="18" height="18" viewBox="0 0 80 80"><polygon points="40,4 49,30 76,30 54,46 62,72 40,56 18,72 26,46 4,30 31,30" fill={shape.color} /></svg>}
+    </span>
+  );
+}
+
+function renderShape(shape, isSelected, onClick) {
+  const commonStyle = {
+    cursor: "pointer",
+    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+    borderRadius: "16px",
+    border: isSelected ? "3px solid var(--teal)" : "2px solid transparent",
+    padding: "8px",
+    background: isSelected ? "rgba(15, 118, 110, 0.08)" : "rgba(255, 255, 255, 0.8)",
+    boxShadow: isSelected ? "0 4px 12px rgba(15, 118, 110, 0.15)" : "0 2px 8px rgba(0,0,0,0.04)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transform: isSelected ? "scale(1.05)" : "scale(1)",
+    width: "90px",
+    height: "90px",
+  };
+
+  return (
+    <button
+      key={shape.id}
+      type="button"
+      onClick={onClick}
+      style={commonStyle}
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.transform = "scale(1.03)";
+          e.currentTarget.style.background = "#ffffff";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.background = "rgba(255, 255, 255, 0.8)";
+          e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)";
+        }
+      }}
+    >
+      {shape.id === "circle" && (
+        <svg width="56" height="56" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="34" fill={shape.color} stroke={shape.stroke} strokeWidth="3" />
+        </svg>
+      )}
+      {shape.id === "square" && (
+        <svg width="56" height="56" viewBox="0 0 80 80">
+          <rect x="6" y="6" width="68" height="68" rx="8" fill={shape.color} stroke={shape.stroke} strokeWidth="3" />
+        </svg>
+      )}
+      {shape.id === "triangle" && (
+        <svg width="56" height="56" viewBox="0 0 80 80">
+          <polygon points="40,6 74,70 6,70" fill={shape.color} stroke={shape.stroke} strokeWidth="3" />
+        </svg>
+      )}
+      {shape.id === "pentagon" && (
+        <svg width="56" height="56" viewBox="0 0 80 80">
+          <polygon points="40,6 74,31 61,71 19,71 6,31" fill={shape.color} stroke={shape.stroke} strokeWidth="3" />
+        </svg>
+      )}
+      {shape.id === "star" && (
+        <svg width="56" height="56" viewBox="0 0 80 80">
+          <polygon points="40,6 49,31 76,31 54,47 62,72 40,56 18,72 26,47 4,31 31,31" fill={shape.color} stroke={shape.stroke} strokeWidth="3" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 export default function TestPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -463,6 +590,7 @@ export default function TestPage() {
 
   // Form Answer State
   const [answers, setAnswers] = useState({});
+  const [commandClicks, setCommandClicks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -510,6 +638,11 @@ export default function TestPage() {
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    // Reset local interactive step state on step navigation
+    setCommandClicks([]);
+  }, [stepIndex]);
 
   // Save draft status checkpoint to localStorage on change
   useEffect(() => {
@@ -622,14 +755,25 @@ export default function TestPage() {
     const currentStep = allSteps[stepIndex];
     let limit = null;
 
-    if (currentStep.type === "registration") {
-      limit = 30; // 30 seconds for Word presentation
-    } else if (currentStep.type === "clock") {
-      limit = 180; // 3 minutes for Clock drawing
-    } else if (currentStep.type === "recall") {
+    if (currentStep.type === "registration" || currentStep.type === "mmse_registration") {
+      limit = 30; // 30 seconds for Word presentation/registration
+    } else if (currentStep.type === "clock" || currentStep.type === "mmse_pentagons") {
+      limit = 180; // 3 minutes for Clock/Pentagons drawing
+    } else if (currentStep.type === "recall" || currentStep.type === "mmse_recall") {
       limit = 30; // 30 seconds for Word recall
     } else if (currentStep.type === "transition") {
       limit = 20; // 20 seconds for Transition screen
+    } else if (
+      currentStep.type === "mmse_temporal" ||
+      currentStep.type === "mmse_spatial" ||
+      currentStep.type === "mmse_attention" ||
+      currentStep.type === "mmse_naming" ||
+      currentStep.type === "mmse_command" ||
+      currentStep.type === "mmse_writing"
+    ) {
+      limit = 60; // 60 seconds for orientation, attention, naming, command, writing
+    } else if (currentStep.type === "mmse_repetition" || currentStep.type === "mmse_reading") {
+      limit = 30; // 30 seconds for repetition and reading obedience
     }
 
     if (limit === null) {
@@ -1198,164 +1342,56 @@ export default function TestPage() {
 
                       {/* 4. MMSE Temporal Orientation */}
                       {currentStep.type === "mmse_temporal" && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "18px", width: "100%" }}>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                            <label>
-                              Year
-                              <select
-                                value={answers[`temporal_year_${currentStep.lang}`] || ""}
-                                onChange={(e) => updateAnswer(`temporal_year_${currentStep.lang}`, e.target.value)}
-                                style={{ width: "100%" }}
-                              >
-                                <option value="">Select Year</option>
-                                <option value="2026">2026</option>
-                                <option value="2025">2025</option>
-                                <option value="2027">2027</option>
-                                <option value="other">Other</option>
-                              </select>
-                            </label>
-
-                            <label>
-                              Season
-                              <select
-                                value={answers[`temporal_season_${currentStep.lang}`] || ""}
-                                onChange={(e) => updateAnswer(`temporal_season_${currentStep.lang}`, e.target.value)}
-                                style={{ width: "100%" }}
-                              >
-                                <option value="">Select Season</option>
-                                <option value="summer">Summer / Verano</option>
-                                <option value="autumn">Autumn/Fall / Otoño</option>
-                                <option value="winter">Winter / Invierno</option>
-                                <option value="spring">Spring / Primavera</option>
-                              </select>
-                            </label>
-                          </div>
-
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                            <label>
-                              Month
-                              <select
-                                value={answers[`temporal_month_${currentStep.lang}`] || ""}
-                                onChange={(e) => updateAnswer(`temporal_month_${currentStep.lang}`, e.target.value)}
-                                style={{ width: "100%" }}
-                              >
-                                <option value="">Select Month</option>
-                                {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map((m, idx) => (
-                                  <option key={m} value={m.toLowerCase()}>{m}</option>
-                                ))}
-                              </select>
-                            </label>
-
-                            <label>
-                              Day of the Week
-                              <select
-                                value={answers[`temporal_day_${currentStep.lang}`] || ""}
-                                onChange={(e) => updateAnswer(`temporal_day_${currentStep.lang}`, e.target.value)}
-                                style={{ width: "100%" }}
-                              >
-                                <option value="">Select Day</option>
-                                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((d) => (
-                                  <option key={d} value={d.toLowerCase()}>{d}</option>
-                                ))}
-                              </select>
-                            </label>
-                          </div>
-
-                          <label>
-                            Date (Day of Month)
-                            <input
-                              type="number"
-                              min="1"
-                              max="31"
-                              value={answers[`temporal_date_${currentStep.lang}`] || ""}
-                              onChange={(e) => updateAnswer(`temporal_date_${currentStep.lang}`, e.target.value)}
-                              placeholder="e.g. 12"
-                              style={{ width: "100%" }}
-                            />
-                          </label>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
+                          <AudioRecorder
+                            lang={currentStep.lang}
+                            instruction={
+                              currentStep.lang === "es"
+                                ? "Hable en el micrófono respondiendo al año, estación, mes, fecha y día de la semana"
+                                : currentStep.lang === "zh-TW"
+                                ? "在麥克風中說出年份、季節、月份、日期和星期幾"
+                                : currentStep.lang === "ar"
+                                ? "تحدث في الميكروفون مجيباً عن السنة والفصل والشهر والتاريخ ويوم الأسبوع"
+                                : "Speak the year, season, month, date, and day of the week into the microphone"
+                            }
+                            onConfirm={(audioDataUrl) => updateAnswer(`temporalAudio_${currentStep.lang}`, audioDataUrl)}
+                          />
                         </div>
                       )}
 
                       {/* 5. MMSE Spatial Orientation */}
                       {currentStep.type === "mmse_spatial" && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
-                          <label>
-                            State / Province / Region
-                            <input
-                              type="text"
-                              value={answers[`spatial_state_${currentStep.lang}`] || ""}
-                              onChange={(e) => updateAnswer(`spatial_state_${currentStep.lang}`, e.target.value)}
-                              placeholder="e.g. Ohio"
-                            />
-                          </label>
-
-                          <label>
-                            County / Caza / District
-                            <input
-                              type="text"
-                              value={answers[`spatial_county_${currentStep.lang}`] || ""}
-                              onChange={(e) => updateAnswer(`spatial_county_${currentStep.lang}`, e.target.value)}
-                              placeholder="e.g. Franklin"
-                            />
-                          </label>
-
-                          <label>
-                            City / Town / Mohafazat
-                            <input
-                              type="text"
-                              value={answers[`spatial_town_${currentStep.lang}`] || ""}
-                              onChange={(e) => updateAnswer(`spatial_town_${currentStep.lang}`, e.target.value)}
-                              placeholder="e.g. Columbus"
-                            />
-                          </label>
-
-                          <label>
-                            Building Name / Street / Address
-                            <input
-                              type="text"
-                              value={answers[`spatial_building_${currentStep.lang}`] || ""}
-                              onChange={(e) => updateAnswer(`spatial_building_${currentStep.lang}`, e.target.value)}
-                              placeholder="e.g. Medical Clinic"
-                            />
-                          </label>
-
-                          <label>
-                            Floor / Room Number
-                            <input
-                              type="text"
-                              value={answers[`spatial_floor_${currentStep.lang}`] || ""}
-                              onChange={(e) => updateAnswer(`spatial_floor_${currentStep.lang}`, e.target.value)}
-                              placeholder="e.g. 3rd Floor"
-                            />
-                          </label>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
+                          <AudioRecorder
+                            lang={currentStep.lang}
+                            instruction={
+                              currentStep.lang === "es"
+                                ? "Hable en el micrófono respondiendo a su estado, condado, ciudad, edificio y piso actual"
+                                : currentStep.lang === "zh-TW"
+                                ? "在麥克風中說出您目前所在的省/州、縣/區、城市、建築和樓層"
+                                : currentStep.lang === "ar"
+                                ? "تحدث في الميكروفون مجيباً عن الولاية والمحافظة والمدينة والمبنى والطابق الحالي"
+                                : "Speak your current state, county, town, building, and floor into the microphone"
+                            }
+                            onConfirm={(audioDataUrl) => updateAnswer(`spatialAudio_${currentStep.lang}`, audioDataUrl)}
+                          />
                         </div>
                       )}
 
                       {/* 6. MMSE Registration */}
                       {currentStep.type === "mmse_registration" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
-                          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
-                            {details.words.map((word) => (
-                              <div
-                                key={word}
-                                style={{
-                                  background: "#f0fdfa",
-                                  border: "2px solid #99f6e4",
-                                  borderRadius: "12px",
-                                  padding: "12px 24px",
-                                  fontSize: "1.25rem",
-                                  fontWeight: 800,
-                                  color: "var(--teal-dark)",
-                                }}
-                              >
-                                {word}
-                              </div>
-                            ))}
-                          </div>
-                          
                           <AudioRecorder
                             lang={currentStep.lang}
-                            instruction="Click start and repeat the words"
+                            instruction={
+                              currentStep.lang === "es"
+                                ? "Escuche las palabras y repítalas en el micrófono"
+                                : currentStep.lang === "zh-TW"
+                                ? "聽詞彙並在麥克風中複誦"
+                                : currentStep.lang === "ar"
+                                ? "استمع إلى الكلمات وكررها في الميكروفون"
+                                : "Listen to the words and repeat them into the microphone"
+                            }
                             onConfirm={(audioDataUrl) => updateAnswer(`registrationAudio_${currentStep.lang}`, audioDataUrl)}
                           />
                         </div>
@@ -1363,22 +1399,30 @@ export default function TestPage() {
 
                       {/* 7. MMSE Attention & Calculation */}
                       {currentStep.type === "mmse_attention" && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "18px", width: "100%" }}>
-                          <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: 0 }}>
-                            Write down the next 5 numbers from 100 counting backwards by 7 (93, 86, 79, etc.):
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
+                          <p style={{ fontSize: "0.92rem", color: "var(--muted)", margin: 0, textAlign: "center", maxWidth: "460px" }}>
+                            {currentStep.lang === "es"
+                              ? "Reste 7 de 100 sucesivamente y diga los 5 resultados en voz alta."
+                              : currentStep.lang === "zh-TW"
+                              ? "從100開始連續減去7，並大聲說出5個相減的答案。"
+                              : currentStep.lang === "ar"
+                              ? "اطرح 7 من 100 بشكل متتالي وانطق الإجابات الخمسة بصوت عالٍ."
+                              : "Subtract 7 from 100 serially and speak the 5 consecutive answers aloud."
+                            }
                           </p>
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px" }}>
-                            {[1, 2, 3, 4, 5].map((idx) => (
-                              <input
-                                key={idx}
-                                type="number"
-                                value={answers[`attention_${idx}_${currentStep.lang}`] || ""}
-                                onChange={(e) => updateAnswer(`attention_${idx}_${currentStep.lang}`, e.target.value)}
-                                placeholder={`Sub ${idx}`}
-                                style={{ textAlign: "center", padding: "10px 4px", fontSize: "1rem" }}
-                              />
-                            ))}
-                          </div>
+                          <AudioRecorder
+                            lang={currentStep.lang}
+                            instruction={
+                              currentStep.lang === "es"
+                                ? "Diga las 5 respuestas de resta en el micrófono"
+                                : currentStep.lang === "zh-TW"
+                                ? "在大聲說出5個減法答案"
+                                : currentStep.lang === "ar"
+                                ? "انطق إجابات الطرح الخمسة في الميكروفون"
+                                : "Speak the 5 subtraction answers into the microphone"
+                            }
+                            onConfirm={(audioDataUrl) => updateAnswer(`attentionAudio_${currentStep.lang}`, audioDataUrl)}
+                          />
                         </div>
                       )}
 
@@ -1433,12 +1477,17 @@ export default function TestPage() {
                       {/* 10. MMSE Repetition */}
                       {currentStep.type === "mmse_repetition" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
-                          <strong style={{ fontSize: "1.3rem", color: "var(--teal-dark)", background: "#f8faf9", border: "1px dashed var(--line)", borderRadius: "8px", padding: "14px 20px" }}>
-                            {details.phrase}
-                          </strong>
                           <AudioRecorder
                             lang={currentStep.lang}
-                            instruction="Repeat the phrase aloud"
+                            instruction={
+                              currentStep.lang === "es"
+                                ? "Haga clic en Grabar y repita la frase que escuchó"
+                                : currentStep.lang === "zh-TW"
+                                ? "點擊錄音並複誦您聽到的句子"
+                                : currentStep.lang === "ar"
+                                ? "انقر على زر التسجيل وكرر العبارة التي سمعتها"
+                                : "Click start and repeat the phrase you heard"
+                            }
                             onConfirm={(audioDataUrl) => updateAnswer(`repetitionAudio_${currentStep.lang}`, audioDataUrl)}
                           />
                         </div>
@@ -1446,63 +1495,93 @@ export default function TestPage() {
 
                       {/* 11. MMSE 3-Stage Command */}
                       {currentStep.type === "mmse_command" && (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%", textAlign: "left" }}>
-                          {details.commands.map((cmd, idx) => (
-                            <label
-                              key={idx}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", width: "100%" }}>
+                          {/* Sequence slots */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "#f8faf9", border: "1px solid var(--line)", borderRadius: "10px", padding: "10px 18px", width: "100%", justifyContent: "center" }}>
+                            <span style={{ fontSize: "0.85rem", color: "var(--muted)", fontWeight: 600 }}>
+                              {currentStep.lang === "es" ? "Sus toques:" : currentStep.lang === "zh-TW" ? "您的點擊：" : currentStep.lang === "ar" ? "لمساتك:" : "Your touches:"}
+                            </span>
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                              {commandClicks.length >= 1 ? renderMiniShape(commandClicks[0]) : <span style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2px dashed var(--line)", display: "inline-block" }} />}
+                              <span style={{ color: "var(--muted)" }}>→</span>
+                              {commandClicks.length >= 2 ? renderMiniShape(commandClicks[1]) : <span style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2px dashed var(--line)", display: "inline-block" }} />}
+                              <span style={{ color: "var(--muted)" }}>→</span>
+                              {commandClicks.length >= 3 ? renderMiniShape(commandClicks[2]) : <span style={{ width: "28px", height: "28px", borderRadius: "50%", border: "2px dashed var(--line)", display: "inline-block" }} />}
+                            </div>
+                          </div>
+
+
+                          {/* Shape selectors */}
+                          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "center", marginTop: "10px" }}>
+                            {COMMAND_SHAPES.map((shape) => {
+                              const isClicked = commandClicks.includes(shape.id);
+                              return renderShape(shape, isClicked, () => {
+                                if (commandClicks.length < 3) {
+                                  const newClicks = [...commandClicks, shape.id];
+                                  setCommandClicks(newClicks);
+                                  updateAnswer(`command_step1_${currentStep.lang}`, newClicks[0] === "circle");
+                                  updateAnswer(`command_step2_${currentStep.lang}`, newClicks[1] === "square");
+                                  updateAnswer(`command_step3_${currentStep.lang}`, newClicks[2] === "triangle");
+                                }
+                              });
+                            })}
+                          </div>
+
+                          {/* Reset button */}
+                          {commandClicks.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCommandClicks([]);
+                                updateAnswer(`command_step1_${currentStep.lang}`, false);
+                                updateAnswer(`command_step2_${currentStep.lang}`, false);
+                                updateAnswer(`command_step3_${currentStep.lang}`, false);
+                              }}
                               style={{
-                                display: "flex",
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: "12px",
-                                background: answers[`command_step${idx + 1}_${currentStep.lang}`] ? "rgba(15, 118, 110, 0.04)" : "transparent",
+                                background: "transparent",
+                                color: "var(--muted)",
                                 border: "1px solid var(--line)",
                                 borderRadius: "8px",
-                                padding: "16px",
+                                padding: "8px 16px",
+                                fontSize: "0.85rem",
+                                fontWeight: 600,
                                 cursor: "pointer",
-                                transition: "all 0.2s ease",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                marginTop: "6px"
                               }}
                             >
-                              <input
-                                type="checkbox"
-                                checked={!!answers[`command_step${idx + 1}_${currentStep.lang}`]}
-                                onChange={(e) => updateAnswer(`command_step${idx + 1}_${currentStep.lang}`, e.target.checked)}
-                                style={{ width: "18px", height: "18px", accentColor: "var(--teal)" }}
-                              />
-                              <span style={{ fontSize: "0.92rem", color: "var(--ink)", fontWeight: 500 }}>
-                                {idx + 1}. {cmd}
-                              </span>
-                            </label>
-                          ))}
+                              <RotateCcw size={14} />
+                              {currentStep.lang === "es" ? "Restablecer" : currentStep.lang === "zh-TW" ? "重設" : currentStep.lang === "ar" ? "إعادة تعيين" : "Reset"}
+                            </button>
+                          )}
                         </div>
                       )}
 
                       {/* 12. MMSE Reading & Obedience */}
                       {currentStep.type === "mmse_reading" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "28px", width: "100%" }}>
-                          <span style={{ fontSize: "2rem", fontWeight: 800, color: "var(--red)", letterSpacing: "1px" }}>
+                          <span style={{ fontSize: "1.8rem", fontWeight: 800, color: "var(--red)", letterSpacing: "1px", textAlign: "center" }}>
                             {details.commandText}
                           </span>
-                          
-                          <button
-                            type="button"
-                            onClick={() => updateAnswer(`readingObeyed_${currentStep.lang}`, true)}
-                            style={{
-                              background: answers[`readingObeyed_${currentStep.lang}`] ? "var(--green)" : "var(--teal)",
-                              color: "#fff",
-                              border: "none",
-                              borderRadius: "8px",
-                              padding: "14px 28px",
-                              fontSize: "0.95rem",
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                            }}
-                          >
-                            {answers[`readingObeyed_${currentStep.lang}`] ? "Command Confirmed ✓" : "I Have Obeyed Command"}
-                          </button>
+
+                          {/* Shape selector for Reading step */}
+                          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "center", marginTop: "10px" }}>
+                            {COMMAND_SHAPES.map((shape) => {
+                              const isSelected = answers[`readingSelected_${currentStep.lang}`] === shape.id;
+                              return renderShape(shape, isSelected, () => {
+                                updateAnswer(`readingSelected_${currentStep.lang}`, shape.id);
+                                updateAnswer(`readingObeyed_${currentStep.lang}`, shape.id === "star");
+                              });
+                            })}
+                          </div>
+
+                          {answers[`readingSelected_${currentStep.lang}`] && (
+                            <div style={{ fontSize: "0.88rem", color: "var(--teal)", fontWeight: 600 }}>
+                              {currentStep.lang === "es" ? "Selección registrada ✓" : currentStep.lang === "zh-TW" ? "已記錄選擇 ✓" : currentStep.lang === "ar" ? "تم تسجيل الاختيار ✓" : "Selection recorded ✓"}
+                            </div>
+                          )}
                         </div>
                       )}
 
