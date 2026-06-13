@@ -1,9 +1,10 @@
-import { mkdir, readFile, writeFile } from "fs/promises";
-import path from "path";
+import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { docClient, isAwsConfigured } from "../../lib/dynamodb";
 import { z } from "zod";
 import { calculateMiniCogFlag, languageTests } from "../../lib/tests";
-import { connectMongo } from "../../lib/mongodb";
-import Submission from "../../models/Submission";
+import { cookies } from "next/headers";
+import { verifyToken } from "../../lib/auth";
+import crypto from "crypto";
 
 const optionalNumber = (min, max) =>
   z.preprocess(
@@ -12,100 +13,155 @@ const optionalNumber = (min, max) =>
   );
 
 const SubmissionSchema = z.object({
+  submissionId: z.string().min(1),
+  testType: z.enum(["mini-cog", "mmse"]).default("mini-cog"),
+  secondaryLanguage: z.string().optional().default(""),
+  targetWordsEnglish: z.array(z.string()).min(3).max(3),
+  targetWordsSecondary: z.array(z.string()).min(3).max(3).optional(),
+  clientTimeZone: z.string().min(1),
+  locationGroundTruth: z.object({
+    state: z.string().optional().default(""),
+    county: z.string().optional().default(""),
+    town: z.string().optional().default(""),
+    display_name: z.string().optional(),
+    address: z.any().optional(),
+  }).optional(),
   patient: z.object({
     identifier: z.string().min(1),
     age: optionalNumber(0, 125),
-    firstLanguage: z.string().min(1),
-    interpreterUsed: z.boolean().default(false),
+    gender: z.string().optional().default(""),
     educationYears: optionalNumber(0, 40),
-    culturalContext: z.string().optional().default(""),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
   }),
-  answers: z.object({
-    wordRecallEnglish: z.string().optional().default(""),
-    wordRecallFirstLanguage: z.string().optional().default(""),
-    clockNotesEnglish: z.string().optional().default(""),
-    clockNotesFirstLanguage: z.string().optional().default(""),
-    clockDrawingDataUrl: z.string().optional().default(""),
-    clinicianNotes: z.string().optional().default(""),
-    recallScore: optionalNumber(0, 3),
-    clockScore: optionalNumber(0, 2),
-  }),
+  answers: z.record(z.any()),
 });
 
-const dataFile = path.join(process.cwd(), "data", "submissions.json");
-
-function normalizeOptionalNumber(value) {
-  return value === "" || value === undefined ? undefined : Number(value);
-}
-
 function normalizeSubmission(payload) {
-  const firstLanguage = payload.patient.firstLanguage;
-  const rendered = ["en"];
-
-  if (firstLanguage !== "en" && languageTests[firstLanguage]?.imported) {
-    rendered.push(firstLanguage);
-  }
-
-  const recallScore = normalizeOptionalNumber(payload.answers.recallScore);
-  const clockScore = normalizeOptionalNumber(payload.answers.clockScore);
-
   return {
+    submissionId: payload.submissionId,
     patient: {
       ...payload.patient,
-      age: normalizeOptionalNumber(payload.patient.age),
-      educationYears: normalizeOptionalNumber(payload.patient.educationYears),
+      age: payload.patient.age !== undefined ? Number(payload.patient.age) : undefined,
+      educationYears: payload.patient.educationYears !== undefined ? Number(payload.patient.educationYears) : undefined,
+      latitude: payload.patient.latitude !== undefined ? Number(payload.patient.latitude) : undefined,
+      longitude: payload.patient.longitude !== undefined ? Number(payload.patient.longitude) : undefined,
     },
-    testsRendered: rendered,
-    answers: {
-      ...payload.answers,
-      recallScore,
-      clockScore,
-      screeningFlag: calculateMiniCogFlag({ recallScore, clockScore }),
-    },
+    testType: payload.testType,
+    secondaryLanguage: payload.secondaryLanguage,
+    targetWordsEnglish: payload.targetWordsEnglish,
+    targetWordsSecondary: payload.targetWordsSecondary,
+    clientTimeZone: payload.clientTimeZone,
+    locationGroundTruth: payload.locationGroundTruth,
+    answers: payload.answers,
   };
-}
-
-async function saveLocalFallback(submission) {
-  await mkdir(path.dirname(dataFile), { recursive: true });
-
-  let existing = [];
-  try {
-    existing = JSON.parse(await readFile(dataFile, "utf8"));
-  } catch {
-    existing = [];
-  }
-
-  const record = {
-    _id: crypto.randomUUID(),
-    ...submission,
-    createdAt: new Date().toISOString(),
-    storageMode: "local-json",
-  };
-
-  existing.push(record);
-  await writeFile(dataFile, JSON.stringify(existing, null, 2));
-  return record;
 }
 
 export async function POST(request) {
-  const body = await request.json();
-  const parsed = SubmissionSchema.safeParse(body);
-
-  if (!parsed.success) {
+  if (!isAwsConfigured()) {
     return Response.json(
-      { message: "Submission is missing required fields.", issues: parsed.error.flatten() },
-      { status: 400 },
+      { message: "AWS Credentials are not configured. Please set them in your .env file." },
+      { status: 500 }
     );
   }
 
-  const submission = normalizeSubmission(parsed.data);
-  const mongo = await connectMongo();
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("tash_session");
+    
+    if (!sessionCookie || !sessionCookie.value) {
+      return Response.json({ message: "Not authenticated." }, { status: 401 });
+    }
 
-  if (!mongo) {
-    const record = await saveLocalFallback(submission);
-    return Response.json({ record, storageMode: "local-json" }, { status: 201 });
+    const payload = verifyToken(sessionCookie.value);
+    if (!payload || !payload.userId) {
+      return Response.json({ message: "Invalid or expired session." }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const parsed = SubmissionSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return Response.json(
+        { message: "Submission is missing required fields.", issues: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const submission = normalizeSubmission(parsed.data);
+    const timestamp = new Date().toISOString();
+    const tableName = "tash-core";
+
+    const dbItem = {
+      PK: `USER#${payload.userId}`,
+      SK: `SUBMISSION#${timestamp}`,
+      submissionId: submission.submissionId,
+      userId: payload.userId,
+      testType: submission.testType,
+      secondaryLanguage: submission.secondaryLanguage,
+      targetWordsEnglish: submission.targetWordsEnglish,
+      targetWordsSecondary: submission.targetWordsSecondary,
+      clientTimeZone: submission.clientTimeZone,
+      locationGroundTruth: submission.locationGroundTruth,
+      patient: submission.patient,
+      answers: submission.answers,
+      createdAt: timestamp,
+    };
+
+    await docClient.send(
+      new PutCommand({
+        TableName: tableName,
+        Item: dbItem,
+      })
+    );
+
+    return Response.json({ record: dbItem, storageMode: "dynamodb" }, { status: 201 });
+  } catch (error) {
+    console.error("Submission POST error:", error);
+    return Response.json({ message: "Failed to save submission." }, { status: 500 });
+  }
+}
+
+export async function GET(request) {
+  if (!isAwsConfigured()) {
+    return Response.json(
+      { message: "AWS Credentials are not configured." },
+      { status: 500 }
+    );
   }
 
-  const record = await Submission.create(submission);
-  return Response.json({ record, storageMode: "mongodb" }, { status: 201 });
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("tash_session");
+    
+    if (!sessionCookie || !sessionCookie.value) {
+      return Response.json({ message: "Not authenticated." }, { status: 401 });
+    }
+
+    const payload = verifyToken(sessionCookie.value);
+    if (!payload || !payload.userId) {
+      return Response.json({ message: "Invalid or expired session." }, { status: 401 });
+    }
+
+    const tableName = "tash-core";
+    const userPK = `USER#${payload.userId}`;
+
+    // Fetch submissions from DynamoDB using QueryCommand
+    const result = await docClient.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+        ExpressionAttributeValues: {
+          ":pk": userPK,
+          ":sk": "SUBMISSION#",
+        },
+        ScanIndexForward: false, // Descending order (newest first)
+      })
+    );
+
+    return Response.json({ submissions: result.Items || [], storageMode: "dynamodb" });
+  } catch (error) {
+    console.error("Fetch submissions error:", error);
+    return Response.json({ message: "Failed to fetch submissions." }, { status: 500 });
+  }
 }

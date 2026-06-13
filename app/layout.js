@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "TASH Screening",
+  title: "Cognitive Assessment Portal",
   description: "Multilingual cognitive screening capture workflow",
 };
 
