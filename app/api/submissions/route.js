@@ -13,27 +13,46 @@ const optionalNumber = (min, max) =>
   );
 
 const SubmissionSchema = z.object({
+  submissionId: z.string().min(1),
   testType: z.enum(["mini-cog", "mmse"]).default("mini-cog"),
   secondaryLanguage: z.string().optional().default(""),
+  targetWordsEnglish: z.array(z.string()).min(3).max(3),
+  targetWordsSecondary: z.array(z.string()).min(3).max(3).optional(),
+  clientTimeZone: z.string().min(1),
+  locationGroundTruth: z.object({
+    state: z.string().optional().default(""),
+    county: z.string().optional().default(""),
+    town: z.string().optional().default(""),
+    display_name: z.string().optional(),
+    address: z.any().optional(),
+  }).optional(),
   patient: z.object({
     identifier: z.string().min(1),
     age: optionalNumber(0, 125),
     gender: z.string().optional().default(""),
     educationYears: optionalNumber(0, 40),
-    countryOrRegion: z.string().optional().default(""),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
   }),
   answers: z.record(z.any()),
 });
 
 function normalizeSubmission(payload) {
   return {
+    submissionId: payload.submissionId,
     patient: {
       ...payload.patient,
       age: payload.patient.age !== undefined ? Number(payload.patient.age) : undefined,
       educationYears: payload.patient.educationYears !== undefined ? Number(payload.patient.educationYears) : undefined,
+      latitude: payload.patient.latitude !== undefined ? Number(payload.patient.latitude) : undefined,
+      longitude: payload.patient.longitude !== undefined ? Number(payload.patient.longitude) : undefined,
     },
     testType: payload.testType,
     secondaryLanguage: payload.secondaryLanguage,
+    targetWordsEnglish: payload.targetWordsEnglish,
+    targetWordsSecondary: payload.targetWordsSecondary,
+    clientTimeZone: payload.clientTimeZone,
+    locationGroundTruth: payload.locationGroundTruth,
     answers: payload.answers,
   };
 }
@@ -70,17 +89,20 @@ export async function POST(request) {
     }
 
     const submission = normalizeSubmission(parsed.data);
-    const submissionId = "sub_" + crypto.randomUUID().replace(/-/g, "").substring(0, 16);
     const timestamp = new Date().toISOString();
     const tableName = "tash-core";
 
     const dbItem = {
       PK: `USER#${payload.userId}`,
       SK: `SUBMISSION#${timestamp}`,
-      submissionId,
+      submissionId: submission.submissionId,
       userId: payload.userId,
       testType: submission.testType,
       secondaryLanguage: submission.secondaryLanguage,
+      targetWordsEnglish: submission.targetWordsEnglish,
+      targetWordsSecondary: submission.targetWordsSecondary,
+      clientTimeZone: submission.clientTimeZone,
+      locationGroundTruth: submission.locationGroundTruth,
       patient: submission.patient,
       answers: submission.answers,
       createdAt: timestamp,

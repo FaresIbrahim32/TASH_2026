@@ -15,6 +15,8 @@ import {
   X,
   RotateCcw,
   Check,
+  MapPin,
+  Loader2,
 } from "lucide-react";
 import WebcamCapture from "../components/WebcamCapture";
 import AudioRecorder from "../components/AudioRecorder";
@@ -36,6 +38,18 @@ function stopSpeech() {
   if (typeof window !== "undefined" && window.speechSynthesis) {
     window.speechSynthesis.cancel();
   }
+}
+
+function dataURLtoBlob(dataurl) {
+  const arr = dataurl.split(",");
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
 }
 
 // Generate the array of wizard steps based on test type and selected language
@@ -592,8 +606,14 @@ export default function TestPage() {
   const [answers, setAnswers] = useState({});
   const [commandClicks, setCommandClicks] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const activeAudioRef = useRef(null);
+
+  // Geolocation & Timezone Verification States
+  const [gpsCoords, setGpsCoords] = useState(null);
+  const [locationGroundTruth, setLocationGroundTruth] = useState({ state: "", county: "", town: "" });
+  const [locationStatus, setLocationStatus] = useState("idle"); // "idle" | "acquiring" | "resolving" | "resolved" | "denied" | "failed"
 
   // Fetch Auth context
   useEffect(() => {
@@ -615,6 +635,62 @@ export default function TestPage() {
     }
     checkAuth();
   }, [router]);
+
+  // Request client geolocation and reverse geocode
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (navigator.geolocation) {
+        setLocationStatus("acquiring");
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            setGpsCoords({ latitude: lat, longitude: lon });
+            setLocationStatus("resolving");
+            
+            try {
+              // Fetch from OpenStreetMap Nominatim reverse geocoder
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
+                headers: {
+                  "User-Agent": "TASH-Cognitive-Assessment-App"
+                }
+              });
+              if (res.ok) {
+                const data = await res.json();
+                const addr = data.address || {};
+                
+                // Extract location using safe fallbacks for varying global tag structures
+                const resolvedState = addr.state || addr.province || addr.region || addr.prefecture || "";
+                const resolvedCounty = addr.county || addr.district || addr.municipality || addr.department || "";
+                const resolvedTown = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || "";
+                
+                setLocationGroundTruth({
+                  state: resolvedState,
+                  county: resolvedCounty,
+                  town: resolvedTown,
+                  display_name: data.display_name,
+                  address: addr
+                });
+                setLocationStatus("resolved");
+              } else {
+                setLocationStatus("failed");
+              }
+            } catch (err) {
+              console.error("Nominatim reverse geocoding failed:", err);
+              setLocationStatus("failed");
+            }
+          },
+          (error) => {
+            console.warn("Geolocation API access blocked/denied:", error);
+            setLocationStatus("denied");
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } else {
+        setLocationStatus("denied");
+      }
+    }
+  }, []);
 
   // Load wizard draft checkpoint if user refreshes
   useEffect(() => {
@@ -790,15 +866,11 @@ export default function TestPage() {
 
   function nextStep() {
     handleStopSpeech();
-    setStepIndex((prev) => {
-      if (prev < allSteps.length - 1) {
-        return prev + 1;
-      } else {
-        // Trigger submit in the next tick
-        setTimeout(() => handleSubmit(), 0);
-        return prev;
-      }
-    });
+    if (stepIndex < allSteps.length - 1) {
+      setStepIndex((prev) => prev + 1);
+    } else {
+      handleSubmit();
+    }
   }
 
   function prevStep() {
@@ -868,25 +940,129 @@ export default function TestPage() {
 
   // Handle auto-advance when timer reaches 0
   useEffect(() => {
-    if (started && stepTimeLeft === 0) {
+    if (started && stepTimeLeft === 0 && !isSubmitting) {
       nextStep();
     }
-  }, [stepTimeLeft, started]);
+  }, [stepTimeLeft, started, isSubmitting]);
 
 
   async function handleSubmit() {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
+    setStarted(false); // Disable countdown timer immediately
     try {
+      // 1. Generate unique submissionId
+      const submissionId = "sub_" + (self.crypto?.randomUUID
+        ? self.crypto.randomUUID().replace(/-/g, "")
+        : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      ).substring(0, 16);
+
+      // 2. Identify base64 files for S3 offloading
+      const filesToUpload = [];
+      const updatedAnswers = { ...answers };
+
+      for (const [key, value] of Object.entries(answers)) {
+        if (typeof value === "string" && value.startsWith("data:") && value.includes(";base64,")) {
+          const mimeMatch = value.match(/^data:([^;]+);/);
+          const contentType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+          filesToUpload.push({
+            key,
+            dataUrl: value,
+            contentType
+          });
+        }
+      }
+
+      // 3. Batch request presigned S3 upload URLs
+      if (filesToUpload.length > 0) {
+        const presignRes = await fetch("/api/submissions/presign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            submissionId,
+            files: filesToUpload.map(f => ({ key: f.key, contentType: f.contentType }))
+          })
+        });
+
+        if (!presignRes.ok) {
+          const errData = await presignRes.json();
+          throw new Error(errData.message || "Failed to generate upload tokens.");
+        }
+
+        const { files: signedFiles } = await presignRes.json();
+
+        // 4. Upload raw binaries directly to S3 in parallel
+        const uploadPromises = filesToUpload.map(async (file) => {
+          const { uploadUrl, publicUrl } = signedFiles[file.key];
+          
+          // Convert base64 dataUrl to standard Blob
+          const blob = dataURLtoBlob(file.dataUrl);
+
+          // Upload raw binary bytes using PUT
+          const s3PutRes = await fetch(uploadUrl, {
+            method: "PUT",
+            body: blob,
+            headers: {
+              "Content-Type": file.contentType
+            }
+          });
+
+          if (!s3PutRes.ok) {
+            throw new Error(`Failed to upload media asset: ${file.key}`);
+          }
+
+          // Swap base64 content with the new S3 URL
+          updatedAnswers[file.key] = publicUrl;
+        });
+
+        await Promise.all(uploadPromises);
+      }
+
+      // 5. Build presentation word list contexts
+      let targetWordsEnglish = [];
+      let targetWordsSecondary = [];
+
+      if (testType === "mini-cog") {
+        targetWordsEnglish = languageTests.en.wordLists[wordListIndex % 6] || [];
+        if (secondaryLanguage && secondaryLanguage !== "none" && languageTests[secondaryLanguage]?.wordLists) {
+          targetWordsSecondary = languageTests[secondaryLanguage].wordLists[wordListIndex % 6] || [];
+        }
+      } else if (testType === "mmse") {
+        targetWordsEnglish = ["Apple", "Table", "Penny"];
+        if (secondaryLanguage === "es") {
+          targetWordsSecondary = ["Leche", "Sensible", "Antes"];
+        } else if (secondaryLanguage === "zh-TW") {
+          targetWordsSecondary = ["蘋果", "桌子", "硬幣"];
+        } else if (secondaryLanguage === "ar") {
+          targetWordsSecondary = ["علم", "مفتاح", "كرسي"];
+        }
+      }
+
+      // 6. Submit final record
       const payload = {
+        submissionId,
         testType,
         secondaryLanguage: secondaryLanguage || "none",
+        targetWordsEnglish,
+        targetWordsSecondary: targetWordsSecondary.length > 0 ? targetWordsSecondary : undefined,
+        clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        locationGroundTruth: testType === "mmse" ? {
+          state: locationGroundTruth.state || "",
+          county: locationGroundTruth.county || "",
+          town: locationGroundTruth.town || "",
+          display_name: locationGroundTruth.display_name,
+          address: locationGroundTruth.address
+        } : undefined,
         patient: {
           identifier: user.email,
           age: user.age,
           gender: user.gender,
           educationYears: user.educationYears,
+          latitude: gpsCoords?.latitude,
+          longitude: gpsCoords?.longitude
         },
-        answers,
+        answers: updatedAnswers
       };
 
       const res = await fetch("/api/submissions", {
@@ -908,8 +1084,9 @@ export default function TestPage() {
       }
     } catch (err) {
       console.error("Submission failed:", err);
-      alert("A network error occurred. Please try again.");
+      alert(err.message || "A network or upload error occurred. Please try again.");
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   }
@@ -968,6 +1145,30 @@ export default function TestPage() {
 
   return (
     <main className="appShell" style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#f6f7f4" }}>
+      {isSubmitting && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          background: "rgba(16, 37, 31, 0.85)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          color: "#ffffff",
+          gap: "16px",
+          textAlign: "center",
+          padding: "24px",
+        }}>
+          <Loader2 size={48} className="animate-spin" style={{ color: "#91d6cd" }} />
+          <p style={{ fontSize: "1.2rem", fontWeight: 700, margin: 0 }}>Submitting your assessment...</p>
+          <p style={{ fontSize: "0.9rem", color: "#c9ddd8", margin: 0 }}>Uploading high-quality drawings and audio recordings to S3...</p>
+        </div>
+      )}
       {/* Header top bar */}
       <header className="topBar" style={{ background: "#10251f", color: "#fff", padding: "20px clamp(18px, 4vw, 44px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "16px", width: "100%", justifyContent: "space-between" }}>
@@ -1126,7 +1327,7 @@ export default function TestPage() {
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                     <strong style={{ fontSize: "1.05rem", color: testType === "mmse" ? "var(--teal-dark)" : "var(--ink)" }}>
-                      MMSE Evaluation
+                      MMSE
                     </strong>
                     <input
                       type="radio"
@@ -1182,6 +1383,88 @@ export default function TestPage() {
               </div>
             </div>
 
+            {/* Environment & Location Check */}
+            <div>
+              <div className="sectionTitle" style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px", color: "var(--teal-dark)" }}>
+                <MapPin size={22} />
+                <h2 style={{ fontSize: "1.2rem", fontWeight: 700, margin: 0 }}>Environment & Location Check</h2>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "18px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "var(--muted)" }}>
+                  <span>Timezone Detected:</span>
+                  <strong style={{ color: "var(--ink)" }}>{typeof window !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : ""}</strong>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.88rem", color: "var(--muted)", alignItems: "center" }}>
+                    <span>Location Status:</span>
+                    {locationStatus === "acquiring" && (
+                      <span style={{ color: "var(--teal)", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Loader2 size={14} className="animate-spin" /> Acquiring GPS coordinates...
+                      </span>
+                    )}
+                    {locationStatus === "resolving" && (
+                      <span style={{ color: "var(--teal)", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Loader2 size={14} className="animate-spin" /> Resolving address...
+                      </span>
+                    )}
+                    {locationStatus === "resolved" && <span style={{ color: "var(--teal-dark)", fontWeight: 600 }}>✓ GPS Verified</span>}
+                    {locationStatus === "denied" && <span style={{ color: "var(--red)", fontWeight: 600 }}>✗ Location Access Denied</span>}
+                    {locationStatus === "failed" && <span style={{ color: "var(--red)", fontWeight: 600 }}>✗ Failed to Geocode Location</span>}
+                  </div>
+
+                  {locationStatus === "resolved" && (
+                    <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "12px", fontSize: "0.88rem", display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <div>State: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.state}</strong></div>
+                      <div>County: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.county}</strong></div>
+                      <div>Town/City: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.town}</strong></div>
+                    </div>
+                  )}
+
+                  {(locationStatus === "denied" || locationStatus === "failed") && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "12px" }}>
+                      <p style={{ margin: "0 0 8px 0", fontSize: "0.82rem", color: "var(--muted)", lineHeight: 1.4 }}>
+                        Automatic geocoding failed or was blocked. Please enter the current location manually for spatial orientation scoring:
+                      </p>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px" }}>
+                        <label style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+                          State/Region
+                          <input
+                            type="text"
+                            value={locationGroundTruth.state || ""}
+                            onChange={(e) => setLocationGroundTruth(prev => ({ ...prev, state: e.target.value }))}
+                            placeholder="e.g. Ohio"
+                            style={{ width: "100%", padding: "6px 10px", borderRadius: "4px", border: "1px solid #cbd5e1", marginTop: "4px" }}
+                          />
+                        </label>
+                        <label style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+                          County/District
+                          <input
+                            type="text"
+                            value={locationGroundTruth.county || ""}
+                            onChange={(e) => setLocationGroundTruth(prev => ({ ...prev, county: e.target.value }))}
+                            placeholder="e.g. Franklin County"
+                            style={{ width: "100%", padding: "6px 10px", borderRadius: "4px", border: "1px solid #cbd5e1", marginTop: "4px" }}
+                          />
+                        </label>
+                        <label style={{ fontSize: "0.82rem", color: "var(--muted)" }}>
+                          City/Town
+                          <input
+                            type="text"
+                            value={locationGroundTruth.town || ""}
+                            onChange={(e) => setLocationGroundTruth(prev => ({ ...prev, town: e.target.value }))}
+                            placeholder="e.g. Columbus"
+                            style={{ width: "100%", padding: "6px 10px", borderRadius: "4px", border: "1px solid #cbd5e1", marginTop: "4px" }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Dual Notice */}
             <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "18px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
               <BookOpen size={20} style={{ color: "var(--teal)", marginTop: "2px", flexShrink: 0 }} />
@@ -1191,7 +1474,7 @@ export default function TestPage() {
                 </strong>
                 {secondaryLanguage ? (
                   <span>
-                    To ensure accuracy and isolate language barriers, you will take the entire {testType === "mini-cog" ? "Mini-Cog" : "MMSE"} test **first in English**, and then repeat the exact same test **in your selected language**. The AI grader will compare both submissions.
+                    To ensure accuracy and isolate language barriers, you will take the entire {testType === "mini-cog" ? "Mini-Cog" : "MMSE"} test <strong>first in English</strong>, and then repeat the exact same test <strong>in your selected language</strong>. The AI grader will compare both submissions.
                   </span>
                 ) : (
                   <span>

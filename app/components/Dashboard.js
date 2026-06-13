@@ -325,23 +325,7 @@ export default function Dashboard({ user }) {
               /* Submissions List */
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {submissions.map((sub) => {
-                  const screeningFlag = sub.answers?.screeningFlag || "incomplete";
-                  let badgeBg = "#f3f4f6";
-                  let badgeColor = "#4b5563";
-                  let statusLabel = "Incomplete";
-                  let StatusIcon = FileText;
-
-                  if (screeningFlag === "negative-screen") {
-                    badgeBg = "#ecfdf5";
-                    badgeColor = "#047857";
-                    statusLabel = "Negative (Normal)";
-                    StatusIcon = CheckCircle;
-                  } else if (screeningFlag === "positive-screen") {
-                    badgeBg = "#fff1f2";
-                    badgeColor = "#e11d48";
-                    statusLabel = "Positive (Review Recommended)";
-                    StatusIcon = AlertTriangle;
-                  }
+                  const isPending = !sub.answers?.screeningFlag;
 
                   return (
                     <div
@@ -362,24 +346,26 @@ export default function Dashboard({ user }) {
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--teal-dark)" }}>
-                            Mini-Cog Screening
+                            {sub.testType === "mmse" ? "MMSE" : "Mini-Cog Screening"}
                           </h4>
-                          <span
-                            style={{
-                              background: badgeBg,
-                              color: badgeColor,
-                              fontSize: "0.78rem",
-                              fontWeight: 700,
-                              padding: "4px 10px",
-                              borderRadius: "20px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                            }}
-                          >
-                            <StatusIcon size={13} />
-                            {statusLabel}
-                          </span>
+                          {isPending && (
+                            <span
+                              style={{
+                                background: "#fef3c7",
+                                color: "#92400e",
+                                fontSize: "0.78rem",
+                                fontWeight: 700,
+                                padding: "4px 10px",
+                                borderRadius: "20px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Loader2 size={13} className="animate-spin" />
+                              Scoring Pending
+                            </span>
+                          )}
                         </div>
 
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", color: "var(--muted)", fontSize: "0.85rem" }}>
@@ -389,29 +375,8 @@ export default function Dashboard({ user }) {
                           </span>
                           <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                             <Languages size={14} />
-                            Languages: {sub.testsRendered?.map(l => l.toUpperCase()).join(", ") || "EN"}
+                            Languages: EN{sub.secondaryLanguage && sub.secondaryLanguage !== "none" ? `, ${sub.secondaryLanguage.toUpperCase()}` : ""}
                           </span>
-                        </div>
-                      </div>
-
-                      {/* Scores Breakdown */}
-                      <div style={{ display: "flex", gap: "20px" }}>
-                        <div style={{ textAlign: "center", background: "#f8faf9", padding: "8px 16px", borderRadius: "8px", border: "1px solid var(--line)" }}>
-                          <span style={{ display: "block", fontSize: "0.72rem", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700 }}>
-                            Word Recall
-                          </span>
-                          <strong style={{ fontSize: "1.2rem", color: "var(--teal-dark)" }}>
-                            {sub.answers?.recallScore !== undefined && sub.answers?.recallScore !== null ? `${sub.answers.recallScore}/3` : "--"}
-                          </strong>
-                        </div>
-
-                        <div style={{ textAlign: "center", background: "#f8faf9", padding: "8px 16px", borderRadius: "8px", border: "1px solid var(--line)" }}>
-                          <span style={{ display: "block", fontSize: "0.72rem", color: "var(--muted)", textTransform: "uppercase", fontWeight: 700 }}>
-                            Clock Draw
-                          </span>
-                          <strong style={{ fontSize: "1.2rem", color: "var(--teal-dark)" }}>
-                            {sub.answers?.clockScore !== undefined && sub.answers?.clockScore !== null ? `${sub.answers.clockScore}/2` : "--"}
-                          </strong>
                         </div>
                       </div>
                     </div>
