@@ -214,6 +214,16 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
         const url = URL.createObjectURL(blob);
         setAudioBlob(blob);
         setAudioUrl(url);
+
+        // Auto-save the audio response to parent state immediately
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          const base64data = reader.result;
+          if (onConfirmRef.current) {
+            onConfirmRef.current(base64data);
+          }
+        };
       };
 
       mediaRecorder.start(10); // Collect data every 10ms
@@ -321,6 +331,9 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
     setAudioUrl(null);
     setAudioBlob(null);
     setTimeLeft(maxDurationSeconds);
+    if (onConfirmRef.current) {
+      onConfirmRef.current(null);
+    }
     startRecording();
   }
 
@@ -524,29 +537,6 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
             >
               <RotateCcw size={16} />
               {t.retake}
-            </button>
-
-            {/* Confirm */}
-            <button
-              type="button"
-              onClick={handleConfirm}
-              style={{
-                background: "linear-gradient(135deg, #0f766e 0%, #0d5d58 100%)",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "8px",
-                padding: "12px 24px",
-                fontSize: "0.9rem",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                boxShadow: "0 4px 12px rgba(15, 118, 110, 0.15)",
-              }}
-            >
-              <Check size={16} />
-              {t.confirm}
             </button>
           </>
         ) : (

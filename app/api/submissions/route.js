@@ -1,5 +1,6 @@
-import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand, QueryCommand, GetCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { docClient, isAwsConfigured } from "../../lib/dynamodb";
+import { deleteS3ObjectByUrl } from "../../lib/s3";
 import { z } from "zod";
 import { calculateMiniCogFlag, languageTests } from "../../lib/tests";
 import { cookies } from "next/headers";
@@ -129,8 +130,15 @@ export async function POST(request) {
           PK: dbItem.PK,
           SK: dbItem.SK
         })
-      }).catch(err => {
-        console.log("Failed to trigger AI Evaluator Webhook:", err);
+      })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error(`AI Evaluator Webhook failed with status ${res.status}:`, errText);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to trigger AI Evaluator Webhook due to network error:", err);
       });
     }
 
@@ -182,5 +190,84 @@ export async function GET(request) {
   } catch (error) {
     console.error("Fetch submissions error:", error);
     return Response.json({ message: "Failed to fetch submissions." }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  if (!isAwsConfigured()) {
+    return Response.json(
+      { message: "AWS Credentials are not configured." },
+      { status: 500 }
+    );
+  }
+
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("tash_session");
+    
+    if (!sessionCookie || !sessionCookie.value) {
+      return Response.json({ message: "Not authenticated." }, { status: 401 });
+    }
+
+    const payload = verifyToken(sessionCookie.value);
+    if (!payload || !payload.userId) {
+      return Response.json({ message: "Invalid or expired session." }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { SK } = body;
+
+    if (!SK) {
+      return Response.json({ message: "Missing SK in request body." }, { status: 400 });
+    }
+
+    const tableName = "tash-core";
+    const userPK = `USER#${payload.userId}`;
+
+    // 1. Fetch the submission first to get S3 media URLs
+    const getResult = await docClient.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: {
+          PK: userPK,
+          SK: SK
+        }
+      })
+    );
+
+    const submission = getResult.Item;
+    if (!submission) {
+      return Response.json({ message: "Submission not found." }, { status: 404 });
+    }
+
+    // 2. Identify all S3 URLs stored inside submission.answers
+    const s3Urls = [];
+    if (submission.answers) {
+      Object.values(submission.answers).forEach(val => {
+        if (typeof val === "string" && val.includes(".s3.") && val.includes(".amazonaws.com/")) {
+          s3Urls.push(val);
+        }
+      });
+    }
+
+    // 3. Delete all S3 objects in parallel
+    const deletePromises = s3Urls.map(url => deleteS3ObjectByUrl(url));
+    await Promise.all(deletePromises);
+
+    // 4. Delete the DynamoDB record
+    await docClient.send(
+      new DeleteCommand({
+        TableName: tableName,
+        Key: {
+          PK: userPK,
+          SK: SK
+        }
+      })
+    );
+
+    return Response.json({ success: true, message: "Assessment record and S3 assets successfully deleted." });
+  } catch (error) {
+    console.error("Delete submission error:", error);
+    return Response.json({ message: "Failed to delete submission.", error: error.message }, { status: 500 });
   }
 }

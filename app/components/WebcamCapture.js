@@ -124,19 +124,21 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
       const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
       setCapturedImage(dataUrl);
       
+      // Save captured image to parent state immediately
+      if (onCapture) {
+        onCapture(dataUrl);
+      }
+      
       // Stop camera once captured
       stopCamera();
     }
   }
 
   function handleRetake() {
-    startCamera();
-  }
-
-  function handleConfirm() {
-    if (capturedImage && onCapture) {
-      onCapture(capturedImage);
+    if (onCapture) {
+      onCapture(null);
     }
+    startCamera();
   }
 
   return (
@@ -278,8 +280,6 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
       {!loading && !error && (
         <div style={{ display: "flex", gap: "16px", width: "100%", justifyContent: "center" }}>
           {capturedImage ? (
-            <>
-              {/* Retake */}
               <button
                 type="button"
                 onClick={handleRetake}
@@ -300,30 +300,6 @@ export default function WebcamCapture({ onCapture, instruction = "Align your dra
                 <RotateCcw size={16} />
                 {t.retakePhoto}
               </button>
-
-              {/* Confirm */}
-              <button
-                type="button"
-                onClick={handleConfirm}
-                style={{
-                  background: "linear-gradient(135deg, #0f766e 0%, #0d5d58 100%)",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "12px 24px",
-                  fontSize: "0.9rem",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  boxShadow: "0 4px 12px rgba(15, 118, 110, 0.15)",
-                }}
-              >
-                <Check size={16} />
-                {t.confirmPhoto}
-              </button>
-            </>
           ) : (
             /* Capture Trigger */
             <button

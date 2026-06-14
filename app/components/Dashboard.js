@@ -15,12 +15,14 @@ import {
   ArrowLeft,
   Loader2,
   FileCheck,
+  Trash2,
 } from "lucide-react";
 
 export default function Dashboard({ user }) {
   const router = useRouter();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [activeView, setActiveView] = useState("home"); // "home" | "history"
 
   useEffect(() => {
@@ -41,6 +43,34 @@ export default function Dashboard({ user }) {
       console.error("Failed to fetch past assessments:", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete(sk) {
+    const confirmDelete = window.confirm("Are you sure you want to delete this assessment record? This action cannot be undone.");
+    if (!confirmDelete) return;
+
+    setDeletingId(sk);
+    try {
+      const res = await fetch("/api/submissions", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ SK: sk }),
+      });
+
+      if (res.ok) {
+        setSubmissions((prev) => prev.filter((sub) => sub.SK !== sk));
+      } else {
+        const errData = await res.json();
+        alert(errData.message || "Failed to delete assessment.");
+      }
+    } catch (err) {
+      console.error("Error deleting assessment:", err);
+      alert("A network error occurred. Please try again.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -378,6 +408,42 @@ export default function Dashboard({ user }) {
                             Languages: EN{sub.secondaryLanguage && sub.secondaryLanguage !== "none" ? `, ${sub.secondaryLanguage.toUpperCase()}` : ""}
                           </span>
                         </div>
+                      </div>
+
+                      {/* Delete Action Button */}
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(sub.SK)}
+                          disabled={deletingId === sub.SK}
+                          style={{
+                            background: "transparent",
+                            color: "#d92d20",
+                            border: "1px solid #fda29b",
+                            borderRadius: "8px",
+                            padding: "8px 14px",
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            transition: "all 0.2s ease",
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.background = "#fef3f2";
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          {deletingId === sub.SK ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={14} />
+                          )}
+                          Delete
+                        </button>
                       </div>
                     </div>
                   );

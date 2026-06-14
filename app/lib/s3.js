@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const clientConfig = {
@@ -68,4 +68,39 @@ export async function getPresignedUploadUrl(userId, submissionId, filenameWithou
   const publicUrl = `https://${bucketName}.s3.${clientConfig.region}.amazonaws.com/${key}`;
 
   return { uploadUrl, publicUrl };
+}
+
+/**
+ * Deletes an S3 object based on its public S3 URL.
+ * @param {string} publicUrl - The public HTTPS S3 URL (e.g. https://bucket.s3.region.amazonaws.com/key)
+ */
+export async function deleteS3ObjectByUrl(publicUrl) {
+  if (!publicUrl || typeof publicUrl !== "string") return;
+  
+  const bucketName = process.env.AWS_S3_BUCKET_NAME;
+  if (!bucketName) {
+    throw new Error("AWS_S3_BUCKET_NAME is not set in environment variables.");
+  }
+
+  try {
+    const parsed = new URL(publicUrl);
+    // Extract key (remove leading slash)
+    const key = decodeURIComponent(parsed.pathname.slice(1));
+    
+    // Safety check: only delete if it belongs to our bucket
+    if (!parsed.hostname.includes(bucketName)) {
+      console.warn(`URL ${publicUrl} does not match bucket ${bucketName}. Skipping S3 delete.`);
+      return;
+    }
+
+    const command = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    });
+
+    await s3Client.send(command);
+    console.log(`Successfully deleted S3 object: ${key}`);
+  } catch (error) {
+    console.error(`Failed to delete S3 object by URL (${publicUrl}):`, error);
+  }
 }
