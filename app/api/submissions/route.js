@@ -115,6 +115,25 @@ export async function POST(request) {
       })
     );
 
+    // Asynchronous, non-blocking webhook trigger for AI Evaluator Lambda
+    const evaluatorUrl = process.env.AI_EVALUATOR_URL || process.env.AWS_GRADER_URL;
+    if (evaluatorUrl) {
+      const graderToken = process.env.GRADER_SECRET_TOKEN || "";
+      fetch(evaluatorUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${graderToken}`
+        },
+        body: JSON.stringify({
+          PK: dbItem.PK,
+          SK: dbItem.SK
+        })
+      }).catch(err => {
+        console.log("Failed to trigger AI Evaluator Webhook:", err);
+      });
+    }
+
     return Response.json({ record: dbItem, storageMode: "dynamodb" }, { status: 201 });
   } catch (error) {
     console.error("Submission POST error:", error);

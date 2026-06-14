@@ -1,0 +1,13 @@
+{
+  "name": "ai-evaluator",
+  "version": "1.0.0",
+  "description": "Serverless AWS Lambda AI grading worker for cognitive screenings using Google Gemini.",
+  "main": "index.mjs",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1066.0",
+    "@aws-sdk/lib-dynamodb": "^3.1066.0",
+    "@aws-sdk/client-s3": "^3.1068.0",
+    "@google/genai": "^2.8.0"
+  }
+}
