@@ -1,6 +1,6 @@
 // Clinical rubrics, prompt templates, and strict OpenAPI JSON schemas for Gemini evaluation
 
-export const SYSTEM_INSTRUCTION = "You are a senior clinical neurologist conducting a digital cognitive screening. Grade the patient's performance objectively according to standardized clinical scoring guidelines.";
+export const SYSTEM_INSTRUCTION = "You are a senior clinical neurologist with experience in digital cognitive screenings. Grade the patient's performance objectively according to standardized clinical scoring guidelines.";
 
 export const CLOCK_SCHEMA = {
   type: "OBJECT",
@@ -129,7 +129,7 @@ export const prompts = {
     Listen to the audio, determine which task they did, transcribe their response, score it, and provide your rationale.`,
 
   repetition: (targetPhrase) => 
-    `The patient was asked to repeat a complex phrase. The target phrase is: "${targetPhrase}".
+    `The patient was asked to repeat a phrase. The target phrase is: "${targetPhrase}".
     Listen to the audio and score 1 point if they repeated it exactly or with negligible articulation differences, otherwise score 0.
     Return the transcript of the audio, the final score, and rationale.`,
 

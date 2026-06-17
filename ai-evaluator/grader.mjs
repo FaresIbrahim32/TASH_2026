@@ -83,7 +83,7 @@ async function prepareMediaPart(url) {
 }
 
 // Base handler for executing Gemini Content Generation calls
-async function callGemini(ai, prompt, mediaPart, schema) {
+async function callGemini(ai, prompt, mediaPart, schema, retries = 3, delayMs = 2000) {
   const modelName = "gemini-3.5-flash";
   const contents = [prompt];
 
@@ -91,21 +91,35 @@ async function callGemini(ai, prompt, mediaPart, schema) {
     contents.push(mediaPart);
   }
 
-  try {
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        responseSchema: schema
-      }
-    });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseSchema: schema
+        }
+      });
 
-    return JSON.parse(response.text);
-  } catch (error) {
-    console.error("Gemini API call execution failed:", error);
-    throw error;
+      return JSON.parse(response.text);
+    } catch (error) {
+      const errStr = String(error).toLowerCase();
+      const errMessage = (error.message || "").toLowerCase();
+      const isRateLimit = errStr.includes("429") || errMessage.includes("429") || 
+                          errStr.includes("quota") || errMessage.includes("quota") ||
+                          errStr.includes("exhausted") || errMessage.includes("exhausted");
+
+      if (isRateLimit && attempt < retries) {
+        console.warn(`Gemini 429 Rate Limit hit. Retrying attempt ${attempt + 1}/${retries} in ${delayMs}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs *= 2; // exponential backoff
+      } else {
+        console.error("Gemini API call execution failed:", error);
+        throw error;
+      }
+    }
   }
 }
 

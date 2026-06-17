@@ -578,13 +578,18 @@ function DetailSection({ title, score, maxScore, question, responseContent, tran
 function SubmissionDetailsModal({ submission, onClose }) {
   const answers = submission.answers || {};
   const secLang = submission.secondaryLanguage || "none";
-  const lang = secLang !== "none" ? secLang : "en";
   const testType = submission.testType || "mini-cog";
   
+  // Tab state: default to secondary language if bilingual, otherwise English
+  const [activeLangTab, setActiveLangTab] = useState(secLang !== "none" ? secLang : "en");
+  
   const isPending = !answers.screeningFlag;
-  const totalScore = answers.totalScore;
-  const maxScore = answers.maxScore;
-  const flag = answers.screeningFlag;
+  const gradingResults = answers.gradingResults || {};
+  const activeResults = gradingResults[activeLangTab] || answers;
+
+  const totalScore = activeResults.totalScore;
+  const maxScore = activeResults.maxScore;
+  const flag = activeResults.screeningFlag;
 
   // Calculate Temporal Ground Truth Target
   const createdDate = new Date(submission.createdAt || new Date().toISOString());
@@ -613,7 +618,7 @@ function SubmissionDetailsModal({ submission, onClose }) {
     ar: "لا إف ولا أند ولا بوت",
     "zh-TW": "沒有如果、但是、或可是"
   };
-  const targetPhrase = REPETITION_PHRASES[lang] || REPETITION_PHRASES.en;
+  const targetPhrase = REPETITION_PHRASES[activeLangTab] || REPETITION_PHRASES.en;
 
   function formatDate(dateString) {
     if (!dateString) return "";
@@ -702,6 +707,54 @@ function SubmissionDetailsModal({ submission, onClose }) {
           gap: "24px",
           flex: 1
         }}>
+          {/* Language Selector Tabs */}
+          {secLang !== "none" && !isPending && (
+            <div style={{
+              display: "flex",
+              background: "#f1f5f9",
+              padding: "4px",
+              borderRadius: "8px",
+              alignSelf: "flex-start",
+              gap: "4px",
+              marginBottom: "-8px"
+            }}>
+              <button
+                onClick={() => setActiveLangTab("en")}
+                style={{
+                  background: activeLangTab === "en" ? "#ffffff" : "transparent",
+                  color: activeLangTab === "en" ? "var(--teal)" : "var(--muted)",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 16px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  boxShadow: activeLangTab === "en" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  transition: "all 0.2s"
+                }}
+              >
+                English (EN)
+              </button>
+              <button
+                onClick={() => setActiveLangTab(secLang)}
+                style={{
+                  background: activeLangTab === secLang ? "#ffffff" : "transparent",
+                  color: activeLangTab === secLang ? "var(--teal)" : "var(--muted)",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 16px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  boxShadow: activeLangTab === secLang ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  transition: "all 0.2s"
+                }}
+              >
+                {secLang === "es" ? "Spanish (ES)" : secLang === "zh-TW" ? "Chinese (ZH-TW)" : secLang === "ar" ? "Arabic (AR)" : secLang.toUpperCase()}
+              </button>
+            </div>
+          )}
+
           {/* Status Badge & General Score Card */}
           <div style={{
             display: "flex",
@@ -792,7 +845,7 @@ function SubmissionDetailsModal({ submission, onClose }) {
                 <div>
                   <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#91d6cd" }}>Clinical Evaluation Summary</h4>
                   <p style={{ margin: "6px 0 0", fontSize: "0.88rem", opacity: 0.9, lineHeight: 1.45 }}>
-                    {submission.answers?.gradingExplanation || "No grading details provided by the evaluator."}
+                    {activeResults.gradingExplanation || "No grading details provided by the evaluator."}
                   </p>
                 </div>
               </div>
@@ -802,7 +855,7 @@ function SubmissionDetailsModal({ submission, onClose }) {
           {/* Itemized Questions & Responses Breakdown */}
           <div>
             <h4 style={{ margin: "0 0 16px", fontSize: "1.1rem", fontWeight: 700, color: "var(--teal-dark)", borderBottom: "2px solid var(--teal)", paddingBottom: "6px", display: "inline-block" }}>
-              Detailed Test Breakdown
+              Detailed Test Breakdown ({activeLangTab.toUpperCase()})
             </h4>
             
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -812,13 +865,13 @@ function SubmissionDetailsModal({ submission, onClose }) {
                   {/* Clock Drawing */}
                   <DetailSection
                     title="1. Clock Drawing Test"
-                    score={answers.clockScore}
+                    score={activeResults.clockScore || activeResults.itemizedGrading?.clockDrawing?.score}
                     maxScore={2}
                     question="Draw a clock face, place all numbers in the correct positions, and set the hands to show 10 minutes past 11."
                     responseContent={
-                      getAnswerValue(answers, "clockDrawing", secLang) ? (
+                      getAnswerValue(answers, "clockDrawing", activeLangTab) ? (
                         <img
-                          src={getAnswerValue(answers, "clockDrawing", secLang)}
+                          src={getAnswerValue(answers, "clockDrawing", activeLangTab)}
                           alt="Patient Clock Drawing"
                           style={{
                             maxWidth: "100%",
@@ -833,24 +886,24 @@ function SubmissionDetailsModal({ submission, onClose }) {
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No image captured.</span>
                       )
                     }
-                    rationale={answers.itemizedGrading?.clockDrawing?.rationale}
+                    rationale={activeResults.itemizedGrading?.clockDrawing?.rationale}
                   />
 
                   {/* Word Recall */}
                   <DetailSection
                     title="2. Three-Word Recall"
-                    score={answers.recallScore}
+                    score={activeResults.recallScore || activeResults.itemizedGrading?.wordRecall?.score}
                     maxScore={3}
                     question={`Recall the three target words memorized at the start: ${submission.targetWordsSecondary?.join(", ") || submission.targetWordsEnglish?.join(", ") || "Captain, Garden, Picture"}.`}
                     responseContent={
-                      getAnswerValue(answers, "recallAudio", secLang) ? (
-                        <audio src={getAnswerValue(answers, "recallAudio", secLang)} controls style={{ width: "100%", maxWidth: "360px" }} />
+                      getAnswerValue(answers, "recallAudio", activeLangTab) ? (
+                        <audio src={getAnswerValue(answers, "recallAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
                       ) : (
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No voice recording provided.</span>
                       )
                     }
-                    transcript={answers.itemizedGrading?.wordRecall?.transcript}
-                    rationale={answers.itemizedGrading?.wordRecall?.rationale}
+                    transcript={activeResults.itemizedGrading?.wordRecall?.transcript}
+                    rationale={activeResults.itemizedGrading?.wordRecall?.rationale}
                   />
                 </>
               ) : (
@@ -859,100 +912,100 @@ function SubmissionDetailsModal({ submission, onClose }) {
                   {/* 1. Temporal Orientation */}
                   <DetailSection
                     title="1. Temporal Orientation"
-                    score={answers.itemizedGrading?.temporalOrientation?.score}
+                    score={activeResults.itemizedGrading?.temporalOrientation?.score}
                     maxScore={5}
                     question="State the year, season, month, date, and day of the week."
                     groundTruth={`Year: ${targetTemporal.year}, Season: ${targetTemporal.season}, Month: ${targetTemporal.month}, Date: ${targetTemporal.date}, Day: ${targetTemporal.day}`}
                     responseContent={
-                      getAnswerValue(answers, "temporalAudio", lang) ? (
-                        <audio src={getAnswerValue(answers, "temporalAudio", lang)} controls style={{ width: "100%", maxWidth: "360px" }} />
+                      getAnswerValue(answers, "temporalAudio", activeLangTab) ? (
+                        <audio src={getAnswerValue(answers, "temporalAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
                       ) : (
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No recording.</span>
                       )
                     }
-                    transcript={answers.itemizedGrading?.temporalOrientation?.transcript}
-                    rationale={answers.itemizedGrading?.temporalOrientation?.rationale}
+                    transcript={activeResults.itemizedGrading?.temporalOrientation?.transcript}
+                    rationale={activeResults.itemizedGrading?.temporalOrientation?.rationale}
                   />
 
                   {/* 2. Spatial Orientation */}
                   <DetailSection
                     title="2. Spatial Orientation"
-                    score={answers.itemizedGrading?.spatialOrientation?.score}
+                    score={activeResults.itemizedGrading?.spatialOrientation?.score}
                     maxScore={5}
                     question="State the current country, state, town/city, hospital/building, and floor."
                     groundTruth={`Town: ${submission.locationGroundTruth?.town || "N/A"}, County: ${submission.locationGroundTruth?.county || "N/A"}, State: ${submission.locationGroundTruth?.state || "N/A"}`}
                     responseContent={
-                      getAnswerValue(answers, "spatialAudio", lang) ? (
-                        <audio src={getAnswerValue(answers, "spatialAudio", lang)} controls style={{ width: "100%", maxWidth: "360px" }} />
+                      getAnswerValue(answers, "spatialAudio", activeLangTab) ? (
+                        <audio src={getAnswerValue(answers, "spatialAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
                       ) : (
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No recording.</span>
                       )
                     }
-                    transcript={answers.itemizedGrading?.spatialOrientation?.transcript}
-                    rationale={answers.itemizedGrading?.spatialOrientation?.rationale}
+                    transcript={activeResults.itemizedGrading?.spatialOrientation?.transcript}
+                    rationale={activeResults.itemizedGrading?.spatialOrientation?.rationale}
                   />
 
                   {/* 3. Registration */}
                   <DetailSection
                     title="3. Registration (Word Repetition)"
-                    score={answers.itemizedGrading?.registration?.score}
+                    score={activeResults.itemizedGrading?.registration?.score}
                     maxScore={3}
                     question={`Listen carefully to and repeat the three words immediately: ${submission.targetWordsSecondary?.join(", ") || submission.targetWordsEnglish?.join(", ") || "Apple, Table, Penny"}.`}
                     responseContent={
-                      getAnswerValue(answers, "registrationAudio", lang) ? (
-                        <audio src={getAnswerValue(answers, "registrationAudio", lang)} controls style={{ width: "100%", maxWidth: "360px" }} />
+                      getAnswerValue(answers, "registrationAudio", activeLangTab) ? (
+                        <audio src={getAnswerValue(answers, "registrationAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
                       ) : (
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No recording.</span>
                       )
                     }
-                    transcript={answers.itemizedGrading?.registration?.transcript}
-                    rationale={answers.itemizedGrading?.registration?.rationale}
+                    transcript={activeResults.itemizedGrading?.registration?.transcript}
+                    rationale={activeResults.itemizedGrading?.registration?.rationale}
                   />
 
                   {/* 4. Attention & Calculation */}
                   <DetailSection
                     title="4. Attention & Calculation (Serial 7s)"
-                    score={answers.itemizedGrading?.attentionCalculation?.score}
+                    score={activeResults.itemizedGrading?.attentionCalculation?.score}
                     maxScore={5}
                     question="Subtract 7 from 100, then subtract 7 from the result, and repeat 5 times (93, 86, 79, 72, 65)."
                     responseContent={
-                      getAnswerValue(answers, "attentionAudio", lang) ? (
-                        <audio src={getAnswerValue(answers, "attentionAudio", lang)} controls style={{ width: "100%", maxWidth: "360px" }} />
+                      getAnswerValue(answers, "attentionAudio", activeLangTab) ? (
+                        <audio src={getAnswerValue(answers, "attentionAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
                       ) : (
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No recording.</span>
                       )
                     }
-                    transcript={answers.itemizedGrading?.attentionCalculation?.transcript}
-                    rationale={answers.itemizedGrading?.attentionCalculation?.rationale}
+                    transcript={activeResults.itemizedGrading?.attentionCalculation?.transcript}
+                    rationale={activeResults.itemizedGrading?.attentionCalculation?.rationale}
                   />
 
                   {/* 5. Recall */}
                   <DetailSection
                     title="5. Three-Word Recall"
-                    score={answers.itemizedGrading?.wordRecall?.score}
+                    score={activeResults.itemizedGrading?.wordRecall?.score}
                     maxScore={3}
                     question={`Recall the three words memorized in step 3: ${submission.targetWordsSecondary?.join(", ") || submission.targetWordsEnglish?.join(", ") || "Apple, Table, Penny"}.`}
                     responseContent={
-                      getAnswerValue(answers, "recallAudio", lang) ? (
-                        <audio src={getAnswerValue(answers, "recallAudio", lang)} controls style={{ width: "100%", maxWidth: "360px" }} />
+                      getAnswerValue(answers, "recallAudio", activeLangTab) ? (
+                        <audio src={getAnswerValue(answers, "recallAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
                       ) : (
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No recording.</span>
                       )
                     }
-                    transcript={answers.itemizedGrading?.wordRecall?.transcript}
-                    rationale={answers.itemizedGrading?.wordRecall?.rationale}
+                    transcript={activeResults.itemizedGrading?.wordRecall?.transcript}
+                    rationale={activeResults.itemizedGrading?.wordRecall?.rationale}
                   />
 
                   {/* 6. Naming */}
                   <DetailSection
                     title="6. Object Naming"
-                    score={answers.itemizedGrading?.naming?.score}
+                    score={activeResults.itemizedGrading?.naming?.score}
                     maxScore={2}
                     question="Name the two objects shown to you (a pencil and a wristwatch)."
                     responseContent={
                       <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "0.85rem", color: "var(--ink)" }}>
-                        <div>Object 1 (Pencil): <strong>"{answers.itemizedGrading?.naming?.namingObject1 || answers[`naming_object1_${lang}`] || "No response"}"</strong></div>
-                        <div>Object 2 (Watch): <strong>"{answers.itemizedGrading?.naming?.namingObject2 || answers[`naming_object2_${lang}`] || "No response"}"</strong></div>
+                        <div>Object 1 (Pencil): <strong>"{activeResults.itemizedGrading?.naming?.namingObject1 || answers[`naming_object1_${activeLangTab}`] || "No response"}"</strong></div>
+                        <div>Object 2 (Watch): <strong>"{activeResults.itemizedGrading?.naming?.namingObject2 || answers[`naming_object2_${activeLangTab}`] || "No response"}"</strong></div>
                       </div>
                     }
                   />
@@ -960,38 +1013,38 @@ function SubmissionDetailsModal({ submission, onClose }) {
                   {/* 7. Repetition */}
                   <DetailSection
                     title="7. Phrase Repetition"
-                    score={answers.itemizedGrading?.repetition?.score}
+                    score={activeResults.itemizedGrading?.repetition?.score}
                     maxScore={1}
                     question={`Repeat the exact phrase: "${targetPhrase}".`}
                     responseContent={
-                      getAnswerValue(answers, "repetitionAudio", lang) ? (
-                        <audio src={getAnswerValue(answers, "repetitionAudio", lang)} controls style={{ width: "100%", maxWidth: "360px" }} />
+                      getAnswerValue(answers, "repetitionAudio", activeLangTab) ? (
+                        <audio src={getAnswerValue(answers, "repetitionAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
                       ) : (
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No recording.</span>
                       )
                     }
-                    transcript={answers.itemizedGrading?.repetition?.transcript}
-                    rationale={answers.itemizedGrading?.repetition?.rationale}
+                    transcript={activeResults.itemizedGrading?.repetition?.transcript}
+                    rationale={activeResults.itemizedGrading?.repetition?.rationale}
                   />
 
                   {/* 8. Command */}
                   <DetailSection
                     title="8. Three-Stage Command"
-                    score={answers.itemizedGrading?.command?.score}
+                    score={activeResults.itemizedGrading?.command?.score}
                     maxScore={3}
                     question="Take this paper in your right hand, fold it in half, and put it on the floor."
                     responseContent={
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
-                          <input type="checkbox" checked={answers.itemizedGrading?.command?.step1 === true || answers[`command_step1_${lang}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
+                          <input type="checkbox" checked={activeResults.itemizedGrading?.command?.step1 === true || answers[`command_step1_${activeLangTab}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
                           <span>Step 1: Took paper in right hand</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
-                          <input type="checkbox" checked={answers.itemizedGrading?.command?.step2 === true || answers[`command_step2_${lang}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
+                          <input type="checkbox" checked={activeResults.itemizedGrading?.command?.step2 === true || answers[`command_step2_${activeLangTab}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
                           <span>Step 2: Folded paper in half</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
-                          <input type="checkbox" checked={answers.itemizedGrading?.command?.step3 === true || answers[`command_step3_${lang}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
+                          <input type="checkbox" checked={activeResults.itemizedGrading?.command?.step3 === true || answers[`command_step3_${activeLangTab}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
                           <span>Step 3: Placed paper on floor</span>
                         </div>
                       </div>
@@ -1001,12 +1054,12 @@ function SubmissionDetailsModal({ submission, onClose }) {
                   {/* 9. Reading */}
                   <DetailSection
                     title="9. Reading & Obedience"
-                    score={answers.itemizedGrading?.reading?.score !== undefined ? answers.itemizedGrading?.reading?.score : (answers[`readingObeyed_${lang}`] === true ? 1 : 0)}
+                    score={activeResults.itemizedGrading?.reading?.score !== undefined ? activeResults.itemizedGrading?.reading?.score : (answers[`readingObeyed_${activeLangTab}`] === true ? 1 : 0)}
                     maxScore={1}
                     question="Read the instruction 'Close your eyes' and obey what it says."
                     responseContent={
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
-                        <input type="checkbox" checked={answers.itemizedGrading?.reading?.score === 1 || answers[`readingObeyed_${lang}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
+                        <input type="checkbox" checked={activeResults.itemizedGrading?.reading?.score === 1 || answers[`readingObeyed_${activeLangTab}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
                         <span>Obeyed instruction (Closed eyes)</span>
                       </div>
                     }
@@ -1015,27 +1068,27 @@ function SubmissionDetailsModal({ submission, onClose }) {
                   {/* 10. Writing */}
                   <DetailSection
                     title="10. Sentence Writing"
-                    score={answers.itemizedGrading?.writing?.score}
+                    score={activeResults.itemizedGrading?.writing?.score}
                     maxScore={1}
                     question="Write a complete sentence containing a subject and a verb that makes sense."
                     responseContent={
                       <div style={{ padding: "8px 12px", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "6px", fontSize: "0.9rem", color: "var(--ink)", fontWeight: 500 }}>
-                        "{getAnswerValue(answers, "writingSentence", lang) || "No sentence written."}"
+                        "{getAnswerValue(answers, "writingSentence", activeLangTab) || "No sentence written."}"
                       </div>
                     }
-                    rationale={answers.itemizedGrading?.writing?.rationale}
+                    rationale={activeResults.itemizedGrading?.writing?.rationale}
                   />
 
                   {/* 11. Drawing */}
                   <DetailSection
                     title="11. Design Copy (Intersecting Pentagons)"
-                    score={answers.itemizedGrading?.drawing?.score}
+                    score={activeResults.itemizedGrading?.drawing?.score}
                     maxScore={1}
                     question="Copy the drawing of the two intersecting pentagons. They must have five sides each and overlap to form a four-sided intersection."
                     responseContent={
-                      getAnswerValue(answers, "pentagonDrawing", lang) ? (
+                      getAnswerValue(answers, "pentagonDrawing", activeLangTab) ? (
                         <img
-                          src={getAnswerValue(answers, "pentagonDrawing", lang)}
+                          src={getAnswerValue(answers, "pentagonDrawing", activeLangTab)}
                           alt="Patient Pentagon Copy"
                           style={{
                             maxWidth: "100%",
@@ -1050,7 +1103,7 @@ function SubmissionDetailsModal({ submission, onClose }) {
                         <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No design copy captured.</span>
                       )
                     }
-                    rationale={answers.itemizedGrading?.drawing?.rationale}
+                    rationale={activeResults.itemizedGrading?.drawing?.rationale}
                   />
                 </>
               )}
