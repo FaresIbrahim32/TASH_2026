@@ -84,7 +84,7 @@ async function prepareMediaPart(url) {
 
 // Base handler for executing Gemini Content Generation calls
 async function callGemini(ai, prompt, mediaPart, schema, retries = 3, delayMs = 2000) {
-  const modelName = "gemini-3.5-flash";
+  const modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
   const contents = [prompt];
 
   if (mediaPart) {
@@ -107,12 +107,15 @@ async function callGemini(ai, prompt, mediaPart, schema, retries = 3, delayMs = 
     } catch (error) {
       const errStr = String(error).toLowerCase();
       const errMessage = (error.message || "").toLowerCase();
-      const isRateLimit = errStr.includes("429") || errMessage.includes("429") || 
+      const isRetryable = errStr.includes("429") || errMessage.includes("429") || 
+                          errStr.includes("503") || errMessage.includes("503") ||
                           errStr.includes("quota") || errMessage.includes("quota") ||
+                          errStr.includes("unavailable") || errMessage.includes("unavailable") ||
+                          errStr.includes("high demand") || errMessage.includes("high demand") ||
                           errStr.includes("exhausted") || errMessage.includes("exhausted");
 
-      if (isRateLimit && attempt < retries) {
-        console.warn(`Gemini 429 Rate Limit hit. Retrying attempt ${attempt + 1}/${retries} in ${delayMs}ms...`);
+      if (isRetryable && attempt < retries) {
+        console.warn(`Gemini API transient failure. Retrying attempt ${attempt + 1}/${retries} in ${delayMs}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         delayMs *= 2; // exponential backoff
       } else {
@@ -137,7 +140,7 @@ export async function gradeClockDrawing(ai, imageUrl) {
     }
     return await callGemini(ai, prompts.clockDrawing(), mediaPart, CLOCK_SCHEMA);
   } catch (error) {
-    return { score: 0, rationale: `Error during visual evaluation: ${error.message}` };
+    return { score: 0, rationale: "Error while grading. Please try again." };
   }
 }
 
@@ -153,7 +156,7 @@ export async function gradeWordRecall(ai, audioUrl, targetWords) {
     }
     return await callGemini(ai, prompts.wordRecall(targetWords), mediaPart, RECALL_SCHEMA);
   } catch (error) {
-    return { score: 0, recalledWords: [], transcript: "", rationale: `Error during audio recall grading: ${error.message}` };
+    return { score: 0, recalledWords: [], transcript: "", rationale: "Error while grading. Please try again." };
   }
 }
 
@@ -169,7 +172,7 @@ export async function gradeTemporalOrientation(ai, audioUrl, target) {
     }
     return await callGemini(ai, prompts.temporalOrientation(target), mediaPart, TEMPORAL_SCHEMA);
   } catch (error) {
-    return { score: 0, transcript: "", rationale: `Error during temporal orientation grading: ${error.message}` };
+    return { score: 0, transcript: "", rationale: "Error while grading. Please try again." };
   }
 }
 
@@ -185,7 +188,7 @@ export async function gradeSpatialOrientation(ai, audioUrl, target) {
     }
     return await callGemini(ai, prompts.spatialOrientation(target), mediaPart, SPATIAL_SCHEMA);
   } catch (error) {
-    return { score: 0, transcript: "", rationale: `Error during spatial orientation grading: ${error.message}` };
+    return { score: 0, transcript: "", rationale: "Error while grading. Please try again." };
   }
 }
 
@@ -201,7 +204,7 @@ export async function gradeRegistration(ai, audioUrl, targetWords) {
     }
     return await callGemini(ai, prompts.registration(targetWords), mediaPart, RECALL_SCHEMA); // RECALL_SCHEMA conforms to registration requirements
   } catch (error) {
-    return { score: 0, transcript: "", rationale: `Error during registration repeating check: ${error.message}` };
+    return { score: 0, transcript: "", rationale: "Error while grading. Please try again." };
   }
 }
 
@@ -217,7 +220,7 @@ export async function gradeAttentionCalculation(ai, audioUrl) {
     }
     return await callGemini(ai, prompts.attentionCalculation(), mediaPart, ATTENTION_SCHEMA);
   } catch (error) {
-    return { score: 0, taskPerformed: "unknown", transcript: "", rationale: `Error during attention sequence grading: ${error.message}` };
+    return { score: 0, taskPerformed: "unknown", transcript: "", rationale: "Error while grading. Please try again." };
   }
 }
 
@@ -233,7 +236,7 @@ export async function gradeRepetition(ai, audioUrl, targetPhrase) {
     }
     return await callGemini(ai, prompts.repetition(targetPhrase), mediaPart, RECALL_SCHEMA); // RECALL_SCHEMA matches score, transcript, rationale
   } catch (error) {
-    return { score: 0, transcript: "", rationale: `Error during phrase repetition evaluation: ${error.message}` };
+    return { score: 0, transcript: "", rationale: "Error while grading. Please try again." };
   }
 }
 
@@ -245,7 +248,7 @@ export async function gradeWritingSentence(ai, writtenSentence) {
   try {
     return await callGemini(ai, prompts.writingSentence(writtenSentence), null, WRITING_SCHEMA);
   } catch (error) {
-    return { score: 0, rationale: `Error during sentence analysis: ${error.message}` };
+    return { score: 0, rationale: "Error while grading. Please try again." };
   }
 }
 
@@ -261,6 +264,6 @@ export async function gradePentagonCopy(ai, imageUrl) {
     }
     return await callGemini(ai, prompts.pentagonCopy(), mediaPart, PENTAGON_SCHEMA);
   } catch (error) {
-    return { score: 0, rationale: `Error during pentagon geometry evaluation: ${error.message}` };
+    return { score: 0, rationale: "Error while grading. Please try again." };
   }
 }

@@ -142,7 +142,11 @@ export async function handler(event) {
         const recallScore = Number(recallRes.score) || 0;
         const clockScore = Number(clockRes.score) || 0;
         const totalScore = recallScore + clockScore;
-        const screeningFlag = calculateMiniCogFlag({ recallScore, clockScore });
+        
+        const hasError = clockRes.rationale === "Error while grading. Please try again." ||
+                         recallRes.rationale === "Error while grading. Please try again.";
+
+        const screeningFlag = hasError ? "error" : calculateMiniCogFlag({ recallScore, clockScore });
 
         gradingResultsByLang[lang] = {
           screeningFlag,
@@ -151,7 +155,8 @@ export async function handler(event) {
           totalScore,
           maxScore: 5,
           gradedAt: new Date().toISOString(),
-          gradingExplanation: `Word Recall: ${recallRes.rationale || "No rationale."} Clock Drawing: ${clockRes.rationale || "No rationale."}`,
+          gradingExplanation: hasError ? "Error while grading. Please try again." : `Word Recall: ${recallRes.rationale || "No rationale."} Clock Drawing: ${clockRes.rationale || "No rationale."}`,
+          gradingError: hasError,
           itemizedGrading: {
             clockDrawing: { score: clockScore, max: 2, rationale: clockRes.rationale },
             wordRecall: { score: recallScore, max: 3, transcript: recallRes.transcript, recalledWords: recallRes.recalledWords, rationale: recallRes.rationale }
@@ -225,14 +230,24 @@ export async function handler(event) {
           temporalScore + spatialScore + registrationScore + attentionScore + recallScore +
           namingScore + repetitionScore + commandScore + readingScore + writingScore + drawingScore;
 
-        const screeningFlag = totalScore >= 24 ? "negative-screen" : "positive-screen";
+        const hasError = temporalRes.rationale === "Error while grading. Please try again." ||
+                         spatialRes.rationale === "Error while grading. Please try again." ||
+                         registrationRes.rationale === "Error while grading. Please try again." ||
+                         attentionRes.rationale === "Error while grading. Please try again." ||
+                         recallRes.rationale === "Error while grading. Please try again." ||
+                         repetitionRes.rationale === "Error while grading. Please try again." ||
+                         writingRes.rationale === "Error while grading. Please try again." ||
+                         drawingRes.rationale === "Error while grading. Please try again.";
+
+        const screeningFlag = hasError ? "error" : (totalScore >= 24 ? "negative-screen" : "positive-screen");
 
         gradingResultsByLang[lang] = {
           screeningFlag,
           totalScore,
           maxScore: 30,
           gradedAt: new Date().toISOString(),
-          gradingExplanation: `Temporal: ${temporalRes.rationale || "No rationale."} Spatial: ${spatialRes.rationale || "No rationale."} Pentagon drawing: ${drawingRes.rationale || "No rationale."}`,
+          gradingExplanation: hasError ? "Error while grading. Please try again." : `Temporal: ${temporalRes.rationale || "No rationale."} Spatial: ${spatialRes.rationale || "No rationale."} Pentagon drawing: ${drawingRes.rationale || "No rationale."}`,
+          gradingError: hasError,
           itemizedGrading: {
             temporalOrientation: { score: temporalScore, max: 5, transcript: temporalRes.transcript, rationale: temporalRes.rationale },
             spatialOrientation: { score: spatialScore, max: 5, transcript: spatialRes.transcript, rationale: spatialRes.rationale },
@@ -252,15 +267,22 @@ export async function handler(event) {
 
     // Resolve overall high-level fields (for simple UI lists)
     let overallScore, overallMax, overallFlag, overallExplanation;
-    if (langsToGrade.length === 1) {
-      const runEn = gradingResultsByLang["en"];
+    const runEn = gradingResultsByLang["en"];
+    const runSec = secLang !== "none" && secLang !== "en" ? gradingResultsByLang[secLang] : null;
+
+    const anyRunHasError = runEn?.gradingError || runSec?.gradingError;
+
+    if (anyRunHasError) {
+      overallFlag = "error";
+      overallScore = 0;
+      overallMax = runEn.maxScore;
+      overallExplanation = "Error while grading. Please try again.";
+    } else if (langsToGrade.length === 1) {
       overallScore = runEn.totalScore;
       overallMax = runEn.maxScore;
       overallFlag = runEn.screeningFlag;
       overallExplanation = runEn.gradingExplanation;
     } else {
-      const runEn = gradingResultsByLang["en"];
-      const runSec = gradingResultsByLang[secLang];
       overallScore = runSec.totalScore; // secondary/native language score represents actual capacity
       overallMax = runSec.maxScore;
       // clinically safe: positive if EITHER run was positive

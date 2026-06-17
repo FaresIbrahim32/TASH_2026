@@ -17,6 +17,7 @@ import {
   FileCheck,
   Trash2,
   X,
+  RefreshCw,
 } from "lucide-react";
 
 export default function Dashboard({ user }) {
@@ -358,6 +359,7 @@ export default function Dashboard({ user }) {
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {submissions.map((sub) => {
                   const isPending = !sub.answers?.screeningFlag;
+                  const isError = sub.answers?.screeningFlag === "error";
 
                   return (
                     <div
@@ -380,7 +382,7 @@ export default function Dashboard({ user }) {
                           <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--teal-dark)" }}>
                             {sub.testType === "mmse" ? "MMSE" : "Mini-Cog Screening"}
                           </h4>
-                          {isPending && (
+                          {isPending && !isError && (
                             <span
                               style={{
                                 background: "#fef3c7",
@@ -396,6 +398,25 @@ export default function Dashboard({ user }) {
                             >
                               <Loader2 size={13} className="animate-spin" />
                               Scoring Pending
+                            </span>
+                          )}
+                          {isError && (
+                            <span
+                              style={{
+                                background: "#fef2f2",
+                                color: "#b91c1c",
+                                border: "1px solid #fecaca",
+                                fontSize: "0.78rem",
+                                fontWeight: 700,
+                                padding: "4px 10px",
+                                borderRadius: "20px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <AlertTriangle size={13} />
+                              Grading Failed
                             </span>
                           )}
                         </div>
@@ -490,6 +511,7 @@ export default function Dashboard({ user }) {
         <SubmissionDetailsModal
           submission={selectedSubmission}
           onClose={() => setSelectedSubmission(null)}
+          onRegradeSuccess={fetchHistory}
         />
       )}
     </main>
@@ -575,17 +597,47 @@ function DetailSection({ title, score, maxScore, question, responseContent, tran
   );
 }
 
-function SubmissionDetailsModal({ submission, onClose }) {
+function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
   const answers = submission.answers || {};
   const secLang = submission.secondaryLanguage || "none";
   const testType = submission.testType || "mini-cog";
   
   // Tab state: default to secondary language if bilingual, otherwise English
   const [activeLangTab, setActiveLangTab] = useState(secLang !== "none" ? secLang : "en");
+  const [regrading, setRegrading] = useState(false);
   
   const isPending = !answers.screeningFlag;
+  const isError = answers.screeningFlag === "error" || (answers.gradingResults && answers.gradingResults[activeLangTab]?.screeningFlag === "error");
   const gradingResults = answers.gradingResults || {};
   const activeResults = gradingResults[activeLangTab] || answers;
+
+  const handleRegrade = async () => {
+    if (regrading) return;
+    setRegrading(true);
+    try {
+      const res = await fetch("/api/submissions/regrade", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ SK: submission.SK }),
+      });
+      if (res.ok) {
+        if (onRegradeSuccess) {
+          await onRegradeSuccess();
+        }
+        onClose();
+      } else {
+        const errData = await res.json();
+        alert(`Failed to trigger regrade: ${errData.message || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Error regrading:", error);
+      alert("Network error occurred while trying to regrade.");
+    } finally {
+      setRegrading(false);
+    }
+  };
 
   const totalScore = activeResults.totalScore;
   const maxScore = activeResults.maxScore;
@@ -761,7 +813,6 @@ function SubmissionDetailsModal({ submission, onClose }) {
             flexDirection: "column",
             gap: "16px"
           }}>
-            {/* Screening Status Badge */}
             {isPending ? (
               <div style={{
                 background: "#fef3c7",
@@ -778,6 +829,50 @@ function SubmissionDetailsModal({ submission, onClose }) {
                   <strong style={{ fontSize: "0.95rem" }}>Scoring is Pending</strong>
                   <p style={{ margin: "2px 0 0", fontSize: "0.82rem" }}>The AI Grader is currently analyzing your speech recordings and clock drawing. Refresh the page in a moment to see results.</p>
                 </div>
+              </div>
+            ) : isError ? (
+              <div style={{
+                background: "#fff5f5",
+                border: "1px solid #fee2e2",
+                borderRadius: "10px",
+                padding: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                color: "#991b1b"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <AlertTriangle size={22} style={{ flexShrink: 0 }} />
+                  <strong style={{ fontSize: "0.95rem" }}>Grading Failed</strong>
+                </div>
+                <p style={{ margin: 0, fontSize: "0.85rem", lineHeight: 1.45 }}>
+                  An error occurred while automatically grading this assessment. Please try again.
+                </p>
+                <button
+                  onClick={handleRegrade}
+                  disabled={regrading}
+                  style={{
+                    alignSelf: "flex-start",
+                    background: "#b91c1c",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "8px 16px",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    transition: "all 0.2s"
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = "#991b1b"}
+                  onMouseOut={(e) => e.currentTarget.style.background = "#b91c1c"}
+                >
+                  {regrading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                  Regrade Test
+                </button>
               </div>
             ) : flag === "negative-screen" ? (
               <div style={{
@@ -816,7 +911,7 @@ function SubmissionDetailsModal({ submission, onClose }) {
             )}
 
             {/* Scoreboard Overview */}
-            {!isPending && (
+            {!isPending && !isError && (
               <div style={{
                 background: "linear-gradient(135deg, #10251f 0%, #0d1e1a 100%)",
                 color: "#ffffff",
