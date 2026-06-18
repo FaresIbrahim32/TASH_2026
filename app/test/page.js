@@ -327,17 +327,17 @@ function getStepDetails(step, wordListIndex) {
   }
 
   if (step.type === "mmse_spatial") {
-    let text = "Please describe your current location aloud (including state/region, county/district, city/town, building/address, and floor/room). Click record to speak:";
-    let voiceText = "Please describe your current location aloud. State the state or region, the county or district, the city or town, the building name or address, and the floor or room number.";
+    let text = "Please describe your current location aloud (including state/region, county/district, and city/town). Click record to speak:";
+    let voiceText = "Please describe your current location aloud. State the state or region, the county or district, and the city or town.";
     if (lang === "es") {
-      text = "Describa su ubicación actual en voz alta (incluyendo estado/región, condado/distrito, ciudad/pueblo, edificio/dirección y piso/habitación). Haga clic en grabar para hablar:";
-      voiceText = "Por favor, describa su ubicación actual en voz alta. Indique el estado o región, el condado o distrito, la ciudad o pueblo, el edificio o dirección, y el piso o número de habitación.";
+      text = "Describa su ubicación actual en voz alta (incluyendo estado/región, condado/distrito y ciudad/pueblo). Haga clic en grabar para hablar:";
+      voiceText = "Por favor, describa su ubicación actual en voz alta. Indique el estado o región, el condado o distrito, y la ciudad o pueblo.";
     } else if (lang === "zh-TW") {
-      text = "請大聲描述您目前所在的位置（包括省/州/區域、縣/區、城市/城鎮、建築物名稱/地址和樓層/房間號碼）。點擊錄音開始說話：";
-      voiceText = "請大聲描述您目前所在的位置。請說出省/州/區域、縣/區、城市/城鎮、建築物名稱/地址和樓層/房間號碼。";
+      text = "請大聲描述您目前所在的位置（包括省/州/區域、縣/區和城市/城鎮）。點擊錄音開始說話：";
+      voiceText = "請大聲描述您目前所在的位置。請說出省/州/區域、縣/區和城市/城鎮。";
     } else if (lang === "ar") {
-      text = "يرجى وصف موقعك الحالي بصوت عالٍ (بما في ذلك الولاية/المنطقة، المحافظة/القضاء، المدينة/البلدة، اسم المبنى/العنوان، والطابق/رقم الغرفة). انقر على زر التسجيل للتحدث:";
-      voiceText = "يرجى وصف موقعك الحالي بصوت عالٍ. اذكر الولاية أو المنطقة، المحافظة أو القضاء، المدينة أو البلّدة، اسم المبنى أو العنوان، والطابق أو رقم الغرفة.";
+      text = "يرجى وصف موقعك الحالي بصوت عالٍ (بما في ذلك الولاية/المنطقة، المحافظة/القضاء، والمدينة/البلدة). انقر على زر التسجيل للتحدث:";
+      voiceText = "يرجى وصف موقعك الحالي بصوت عالٍ. اذكر الولاية أو المنطقة، المحافظة أو القضاء، والمدينة أو البلّدة.";
     }
     return { text, voiceText, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
   }
@@ -659,10 +659,24 @@ export default function TestPage() {
                 const data = await res.json();
                 const addr = data.address || {};
                 
-                // Extract location using safe fallbacks for varying global tag structures
+                // Extract location using safe fallbacks for varying global tag structures.
+                // Nominatim field availability varies by country/region; the chain below covers
+                // cities, suburbs, unincorporated communities, rural localities, and city districts.
                 const resolvedState = addr.state || addr.province || addr.region || addr.prefecture || "";
                 const resolvedCounty = addr.county || addr.district || addr.municipality || addr.department || "";
-                const resolvedTown = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || "";
+                const resolvedTown =
+                  addr.city ||
+                  addr.town ||
+                  addr.village ||
+                  addr.hamlet ||
+                  addr.city_district ||
+                  addr.locality ||
+                  addr.neighbourhood ||
+                  addr.quarter ||
+                  addr.suburb ||
+                  // Last resort: use the first segment of the human-readable display_name
+                  // e.g. "Land O' Lakes, Pasco County, Florida, United States" → "Land O' Lakes"
+                  (data.display_name ? data.display_name.split(",")[0].trim() : "");
                 
                 setLocationGroundTruth({
                   state: resolvedState,

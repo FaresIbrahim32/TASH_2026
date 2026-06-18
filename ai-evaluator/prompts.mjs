@@ -105,13 +105,12 @@ export const prompts = {
   spatialOrientation: (target) => 
     `The patient was asked spatial location orientation questions.
     Compare what they say in the audio against the ground truth location details:
-    - State: ${target.state}
-    - County: ${target.county}
-    - Town/City: ${target.town}
-    - Building/Hospital: ${target.building || "Assigned testing facility"}
-    - Floor: ${target.floor || "Assigned floor"}
-    
-    Score 1 point for each correct answer (maximum score of 5).
+    - State: ${target.state || "Unknown"}
+    - County: ${target.county || "Unknown"}
+    - Town/City: ${target.town || "Unknown"}
+    ${target.display_name ? `\n    Full address context (for reference): ${target.display_name}` : ""}
+    Score 1 point for each correct answer (maximum score of 3).
+    If a ground truth value is listed as "Unknown", use the full address context above to infer it where possible; if still unresolvable, mark that field as not gradeable and do not penalise the patient.
     Return the transcript of the audio, the final score, and rationale.`,
 
   registration: (targetWords) => 

@@ -1034,8 +1034,8 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
                   <DetailSection
                     title="2. Spatial Orientation"
                     score={activeResults.itemizedGrading?.spatialOrientation?.score}
-                    maxScore={5}
-                    question="State the current country, state, town/city, hospital/building, and floor."
+                    maxScore={3}
+                    question="State the current state/region, county/district, and city/town."
                     groundTruth={`Town: ${submission.locationGroundTruth?.town || "N/A"}, County: ${submission.locationGroundTruth?.county || "N/A"}, State: ${submission.locationGroundTruth?.state || "N/A"}`}
                     responseContent={
                       getAnswerValue(answers, "spatialAudio", activeLangTab) ? (

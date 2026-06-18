@@ -239,18 +239,20 @@ export async function handler(event) {
                          writingRes.rationale === "Error while grading. Please try again." ||
                          drawingRes.rationale === "Error while grading. Please try again.";
 
-        const screeningFlag = hasError ? "error" : (totalScore >= 24 ? "negative-screen" : "positive-screen");
+        // Standard MMSE positive-screen threshold is ≥24/30. With building/floor removed,
+        // max is now 28. Proportional equivalent: floor(24/30 * 28) = 22.
+        const screeningFlag = hasError ? "error" : (totalScore >= 22 ? "negative-screen" : "positive-screen");
 
         gradingResultsByLang[lang] = {
           screeningFlag,
           totalScore,
-          maxScore: 30,
+          maxScore: 28,
           gradedAt: new Date().toISOString(),
           gradingExplanation: hasError ? "Error while grading. Please try again." : `Temporal: ${temporalRes.rationale || "No rationale."} Spatial: ${spatialRes.rationale || "No rationale."} Pentagon drawing: ${drawingRes.rationale || "No rationale."}`,
           gradingError: hasError,
           itemizedGrading: {
             temporalOrientation: { score: temporalScore, max: 5, transcript: temporalRes.transcript, rationale: temporalRes.rationale },
-            spatialOrientation: { score: spatialScore, max: 5, transcript: spatialRes.transcript, rationale: spatialRes.rationale },
+            spatialOrientation: { score: spatialScore, max: 3, transcript: spatialRes.transcript, rationale: spatialRes.rationale },
             registration: { score: registrationScore, max: 3, transcript: registrationRes.transcript, rationale: registrationRes.rationale },
             attentionCalculation: { score: attentionScore, max: 5, taskPerformed: attentionRes.taskPerformed, transcript: attentionRes.transcript, rationale: attentionRes.rationale },
             wordRecall: { score: recallScore, max: 3, transcript: recallRes.transcript, recalledWords: recallRes.recalledWords, rationale: recallRes.rationale },
