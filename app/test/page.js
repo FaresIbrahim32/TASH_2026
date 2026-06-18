@@ -1429,10 +1429,8 @@ export default function TestPage() {
                   </div>
 
                   {locationStatus === "resolved" && (
-                    <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "12px", fontSize: "0.88rem", display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <div>State: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.state}</strong></div>
-                      <div>County: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.county}</strong></div>
-                      <div>Town/City: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.town}</strong></div>
+                    <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "12px", fontSize: "0.88rem" }}>
+                      <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.display_name || `${locationGroundTruth.town || ""}${locationGroundTruth.county ? ", " + locationGroundTruth.county : ""}${locationGroundTruth.state ? ", " + locationGroundTruth.state : ""}`}</strong>
                     </div>
                   )}
 
