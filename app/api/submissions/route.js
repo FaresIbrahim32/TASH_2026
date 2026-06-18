@@ -1,6 +1,6 @@
 import { PutCommand, QueryCommand, GetCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { docClient, isAwsConfigured } from "../../lib/dynamodb";
-import { deleteS3ObjectByUrl } from "../../lib/s3";
+import { deleteS3ObjectByUrl, getPresignedReadUrl } from "../../lib/s3";
 import { z } from "zod";
 import { calculateMiniCogFlag, languageTests } from "../../lib/tests";
 import { cookies } from "next/headers";
@@ -12,6 +12,63 @@ const optionalNumber = (min, max) =>
     (value) => (value === "" || value === undefined || value === null ? undefined : value),
     z.coerce.number().min(min).max(max).optional(),
   );
+
+// S3 presigning helpers (used only by the GET handler)
+
+/**
+ * Returns true if the value is a raw S3 object URL belonging to our bucket.
+ * Non-string values (objects, arrays, numbers) always return false.
+ */
+function isS3Url(val) {
+  return (
+    typeof val === "string" &&
+    val.includes(".s3.") &&
+    val.includes(".amazonaws.com/")
+  );
+}
+
+/**
+ * Extracts the S3 key (the object path) from a full S3 HTTPS URL.
+ * e.g. "https://bucket.s3.us-east-2.amazonaws.com/usr_a/sub_b/file.webm"
+ *      → "usr_a/sub_b/file.webm"
+ */
+function extractS3Key(url) {
+  try {
+    const parsed = new URL(url);
+    // pathname starts with '/', strip it
+    return decodeURIComponent(parsed.pathname.slice(1));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Iterates the flat top-level entries of an `answers` object and replaces any
+ * raw S3 URL string with a 1-hour presigned GET URL. Non-URL values (strings
+ * like screeningFlag, nested objects like gradingResults) are left untouched.
+ * Errors for individual keys are caught and fall back to the original value.
+ */
+async function presignAnswers(answers) {
+  if (!answers || typeof answers !== "object") return answers;
+
+  const entries = Object.entries(answers);
+  const presigned = await Promise.all(
+    entries.map(async ([k, v]) => {
+      if (!isS3Url(v)) return [k, v];
+      const key = extractS3Key(v);
+      if (!key) return [k, v];
+      try {
+        const signedUrl = await getPresignedReadUrl(key, 3600);
+        return [k, signedUrl];
+      } catch (err) {
+        console.error(`[presignAnswers] Failed to sign key "${key}":`, err.message);
+        return [k, v]; // fall back to original URL
+      }
+    })
+  );
+
+  return Object.fromEntries(presigned);
+}
 
 const SubmissionSchema = z.object({
   submissionId: z.string().min(1),
@@ -186,7 +243,19 @@ export async function GET(request) {
       })
     );
 
-    return Response.json({ submissions: result.Items || [], storageMode: "dynamodb" });
+    // Replace raw S3 object URLs in each submission's answers with presigned
+    // 1-hour GET URLs so the browser can load images and play audio directly.
+    const rawItems = result.Items || [];
+    const signedItems = await Promise.all(
+      rawItems.map(async (item) => {
+        if (!item.answers) return item;
+        const signedAnswers = await presignAnswers(item.answers);
+        return { ...item, answers: signedAnswers };
+      })
+    );
+
+    return Response.json({ submissions: signedItems, storageMode: "dynamodb" });
+
   } catch (error) {
     console.error("Fetch submissions error:", error);
     return Response.json({ message: "Failed to fetch submissions." }, { status: 500 });
@@ -252,7 +321,7 @@ export async function DELETE(request) {
     const s3Urls = [];
     if (submission.answers) {
       Object.values(submission.answers).forEach(val => {
-        if (typeof val === "string" && val.includes(".s3.") && val.includes(".amazonaws.com/")) {
+        if (isS3Url(val)) {
           s3Urls.push(val);
         }
       });

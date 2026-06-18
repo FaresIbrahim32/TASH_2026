@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const clientConfig = {
@@ -103,4 +103,25 @@ export async function deleteS3ObjectByUrl(publicUrl) {
   } catch (error) {
     console.error(`Failed to delete S3 object by URL (${publicUrl}):`, error);
   }
+}
+
+/**
+ * Generates a presigned S3 GET URL so the dashboard can serve a private S3
+ * object (image/audio) directly in the browser without making the bucket public.
+ * @param {string} key - The S3 object key (e.g. "usr_abc/sub_xyz/clockDrawing_en.png")
+ * @param {number} expiresIn - Expiry in seconds (default: 3600 = 1 hour)
+ * @returns {Promise<string>} - The presigned GET URL
+ */
+export async function getPresignedReadUrl(key, expiresIn = 3600) {
+  const bucketName = process.env.AWS_S3_BUCKET_NAME;
+  if (!bucketName) {
+    throw new Error("AWS_S3_BUCKET_NAME is not set in environment variables.");
+  }
+
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+  });
+
+  return getSignedUrl(s3Client, command, { expiresIn });
 }
