@@ -364,8 +364,12 @@ export default function Dashboard({ user }) {
               /* Submissions List */
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {submissions.map((sub) => {
-                  const isPending = !sub.answers?.screeningFlag;
-                  const isError = sub.answers?.screeningFlag === "error";
+                  const referenceTime = sub.answers?.regradeRequestedAt || sub.createdAt;
+                  const elapsedMs = new Date().getTime() - new Date(referenceTime).getTime();
+                  const isTimedOut = !sub.answers?.screeningFlag && elapsedMs > 8 * 60 * 1000;
+
+                  const isPending = !sub.answers?.screeningFlag && !isTimedOut;
+                  const isError = sub.answers?.screeningFlag === "error" || isTimedOut;
 
                   return (
                     <div
@@ -614,8 +618,12 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
   const [activeLangTab, setActiveLangTab] = useState(secLang !== "none" ? secLang : "en");
   const [regrading, setRegrading] = useState(false);
   
-  const isPending = !answers.screeningFlag;
-  const isError = answers.screeningFlag === "error" || (answers.gradingResults && answers.gradingResults[activeLangTab]?.screeningFlag === "error");
+  const referenceTime = answers.regradeRequestedAt || submission.createdAt;
+  const elapsedMs = new Date().getTime() - new Date(referenceTime).getTime();
+  const isTimedOut = !answers.screeningFlag && elapsedMs > 8 * 60 * 1000;
+
+  const isPending = !answers.screeningFlag && !isTimedOut;
+  const isError = answers.screeningFlag === "error" || (answers.gradingResults && answers.gradingResults[activeLangTab]?.screeningFlag === "error") || isTimedOut;
   const gradingResults = answers.gradingResults || {};
   const activeResults = gradingResults[activeLangTab] || answers;
 

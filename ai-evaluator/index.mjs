@@ -320,6 +320,25 @@ export async function handler(event) {
 
   } catch (error) {
     console.error("Critical error during grading handler execution:", error);
+    if (PK && SK) {
+      try {
+        await docClient.send(
+          new UpdateCommand({
+            TableName: "tash-core",
+            Key: { PK, SK },
+            UpdateExpression: "SET answers.screeningFlag = :sf, answers.gradingExplanation = :ge, answers.gradingError = :geErr, answers.gradedAt = :ga",
+            ExpressionAttributeValues: {
+              ":sf": "error",
+              ":ge": `Critical execution error: ${error.message}`,
+              ":geErr": true,
+              ":ga": new Date().toISOString()
+            }
+          })
+        );
+      } catch (dbErr) {
+        console.error("Failed to write error state to DynamoDB:", dbErr);
+      }
+    }
     return {
       statusCode: 500,
       body: JSON.stringify({ message: "Grading job execution failed.", error: error.message })

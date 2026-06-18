@@ -46,12 +46,15 @@ export async function POST(request) {
       return Response.json({ message: "Submission not found or unauthorized access." }, { status: 404 });
     }
 
-    // 2. Reset the grading status fields in DynamoDB
+    // 2. Reset the grading status fields in DynamoDB and record the request timestamp
     await docClient.send(
       new UpdateCommand({
         TableName: tableName,
         Key: { PK, SK },
-        UpdateExpression: "REMOVE answers.screeningFlag, answers.totalScore, answers.maxScore, answers.gradedAt, answers.gradingExplanation, answers.gradingResults",
+        UpdateExpression: "REMOVE answers.screeningFlag, answers.totalScore, answers.maxScore, answers.gradedAt, answers.gradingExplanation, answers.gradingResults SET answers.regradeRequestedAt = :now",
+        ExpressionAttributeValues: {
+          ":now": new Date().toISOString()
+        }
       })
     );
 
