@@ -194,6 +194,14 @@ export async function GET(request) {
 }
 
 export async function DELETE(request) {
+  const allowDeletion = process.env.NEXT_PUBLIC_ALLOW_RECORD_DELETION === "true";
+  if (!allowDeletion) {
+    return Response.json(
+      { message: "Record deletion is disabled." },
+      { status: 403 }
+    );
+  }
+
   if (!isAwsConfigured()) {
     return Response.json(
       { message: "AWS Credentials are not configured." },

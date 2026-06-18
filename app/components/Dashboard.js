@@ -20,6 +20,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 
+const ALLOW_DELETION = process.env.NEXT_PUBLIC_ALLOW_RECORD_DELETION === "true";
+
 export default function Dashboard({ user }) {
   const router = useRouter();
   const [submissions, setSubmissions] = useState([]);
@@ -50,6 +52,10 @@ export default function Dashboard({ user }) {
   }
 
   async function handleDelete(sk) {
+    if (!ALLOW_DELETION) {
+      alert("Record deletion is disabled.");
+      return;
+    }
     const confirmDelete = window.confirm("Are you sure you want to delete this assessment record? This action cannot be undone.");
     if (!confirmDelete) return;
 
@@ -465,38 +471,40 @@ export default function Dashboard({ user }) {
                         </button>
 
                         {/* Delete Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(sub.SK)}
-                          disabled={deletingId === sub.SK}
-                          style={{
-                            background: "transparent",
-                            color: "#d92d20",
-                            border: "1px solid #fda29b",
-                            borderRadius: "8px",
-                            padding: "8px 14px",
-                            fontSize: "0.85rem",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            transition: "all 0.2s ease",
-                          }}
-                          onMouseOver={(e) => {
-                            e.currentTarget.style.background = "#fef3f2";
-                          }}
-                          onMouseOut={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                          }}
-                        >
-                          {deletingId === sub.SK ? (
-                            <Loader2 size={14} className="animate-spin" />
-                          ) : (
-                            <Trash2 size={14} />
-                          )}
-                          Delete
-                        </button>
+                        {ALLOW_DELETION && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(sub.SK)}
+                            disabled={deletingId === sub.SK}
+                            style={{
+                              background: "transparent",
+                              color: "#d92d20",
+                              border: "1px solid #fda29b",
+                              borderRadius: "8px",
+                              padding: "8px 14px",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              transition: "all 0.2s ease",
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = "#fef3f2";
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = "transparent";
+                            }}
+                          >
+                            {deletingId === sub.SK ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
