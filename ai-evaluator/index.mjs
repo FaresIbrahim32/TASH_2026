@@ -27,9 +27,9 @@ const ai = new GoogleGenAI({
 // Translation tables for repetition target phrases
 const REPETITION_PHRASES = {
   en: "No ifs, ands, or buts",
-  es: "Ni síes, ni noes, ni peros",
-  ar: "لا إف ولا أند ولا بوت",
-  "zh-TW": "沒有如果、但是、或可是"
+  es: "Es un día agradable y soleado, pero hace demasiado calor.",
+  ar: "أن ، لن ، إذن ، كي",
+  "zh-TW": "沒有如果、並且、或但是"
 };
 
 // Local translation matching list for object naming tasks
@@ -46,11 +46,13 @@ const WATCH_NAMES = [
   "ساعة", "ساعه", "ساعة يد"
 ];
 
-function getSeason(date) {
-  const month = date.getMonth(); // 0-11
-  if (month >= 2 && month <= 4) return "Spring";
-  if (month >= 5 && month <= 8) return "Summer";
-  if (month >= 9 && month <= 10) return "Autumn (or Fall)";
+function getSeasonForTimeZone(date, timeZone) {
+  // Get month as a 1-indexed number directly in the client timezone
+  const monthStr = date.toLocaleString("en-US", { month: "numeric", timeZone: timeZone || "UTC" });
+  const month = Number(monthStr); // 1-12
+  if (month >= 3 && month <= 5) return "Spring";
+  if (month >= 6 && month <= 9) return "Summer";
+  if (month >= 10 && month <= 11) return "Autumn (or Fall)";
   return "Winter";
 }
 
@@ -163,16 +165,17 @@ export async function handler(event) {
           }
         };
       } else if (testType === "mmse") {
-        // Resolve Temporal Targets based on localTimeZone
+        // Resolve Temporal Targets based on clientTimeZone using formatting directly
         const createdDate = new Date(submission.createdAt || new Date().toISOString());
-        const localDateStr = createdDate.toLocaleString("en-US", { timeZone: submission.clientTimeZone || "UTC" });
-        const localDate = new Date(localDateStr);
+        const tz = submission.clientTimeZone || "UTC";
+        const formatPart = (options) => createdDate.toLocaleString("en-US", { ...options, timeZone: tz });
+        
         const targetTemporal = {
-          year: localDate.getFullYear().toString(),
-          month: localDate.toLocaleString("en-US", { month: "long" }),
-          date: localDate.getDate().toString(),
-          day: localDate.toLocaleString("en-US", { weekday: "long" }),
-          season: getSeason(localDate)
+          year: formatPart({ year: "numeric" }),
+          month: formatPart({ month: "long" }),
+          date: formatPart({ day: "numeric" }),
+          day: formatPart({ weekday: "long" }),
+          season: getSeasonForTimeZone(createdDate, tz)
         };
         const targetSpatial = submission.locationGroundTruth || { state: "", county: "", town: "", building: "", floor: "" };
 
@@ -287,10 +290,12 @@ export async function handler(event) {
     } else {
       overallScore = runSec.totalScore; // secondary/native language score represents actual capacity
       overallMax = runSec.maxScore;
-      // clinically safe: positive if EITHER run was positive
-      overallFlag = (runEn.screeningFlag === "positive-screen" || runSec.screeningFlag === "positive-screen") 
-        ? "positive-screen" 
-        : "negative-screen";
+      // Mixed screen categorization: normal in native/secondary but positive/impaired in English (or vice-versa)
+      if (runEn.screeningFlag !== runSec.screeningFlag) {
+        overallFlag = "mixed-screen";
+      } else {
+        overallFlag = runSec.screeningFlag;
+      }
       overallExplanation = `English Score: ${runEn.totalScore}/${runEn.maxScore} (${runEn.screeningFlag === "positive-screen" ? "Impaired" : "Normal"}). ` +
                            `${secLang.toUpperCase()} Score: ${runSec.totalScore}/${runSec.maxScore} (${runSec.screeningFlag === "positive-screen" ? "Impaired" : "Normal"}).`;
     }

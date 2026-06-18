@@ -1690,6 +1690,7 @@ export default function TestPage() {
                       {/* 2. Mini-Cog Clock Drawing */}
                       {currentStep.type === "clock" && (
                         <WebcamCapture
+                          key={currentStep.id}
                           lang={currentStep.lang}
                           instruction={details.text}
                           onCapture={(dataUrl) => updateAnswer(`clockDrawing_${currentStep.lang}`, dataUrl)}
@@ -1699,6 +1700,7 @@ export default function TestPage() {
                       {/* 3. Mini-Cog Recall */}
                       {currentStep.type === "recall" && (
                         <AudioRecorder
+                          key={currentStep.id}
                           lang={currentStep.lang}
                           instruction={details.text}
                           onConfirm={(audioDataUrl) => updateAnswer(`recallAudio_${currentStep.lang}`, audioDataUrl)}
@@ -1709,6 +1711,7 @@ export default function TestPage() {
                       {currentStep.type === "mmse_temporal" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
@@ -1728,6 +1731,7 @@ export default function TestPage() {
                       {currentStep.type === "mmse_spatial" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
@@ -1747,6 +1751,7 @@ export default function TestPage() {
                       {currentStep.type === "mmse_registration" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
@@ -1794,6 +1799,7 @@ export default function TestPage() {
                       {/* 8. MMSE Recall */}
                       {currentStep.type === "mmse_recall" && (
                         <AudioRecorder
+                          key={currentStep.id}
                           lang={currentStep.lang}
                           instruction="Record yourself speaking the three words"
                           onConfirm={(audioDataUrl) => updateAnswer(`recallAudio_${currentStep.lang}`, audioDataUrl)}
@@ -1807,7 +1813,7 @@ export default function TestPage() {
                             {/* Object 1 */}
                             <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
                               <img
-                                src={currentStep.lang === "es" ? "/tests/mmse/eye.png" : "/tests/mmse/pencil.png"}
+                                src="/tests/mmse/pencil.png"
                                 alt="Naming Object 1"
                                 style={{ width: "120px", height: "120px", objectFit: "contain", border: "1px solid var(--line)", borderRadius: "8px", background: "#fff" }}
                               />
@@ -1823,7 +1829,7 @@ export default function TestPage() {
                             {/* Object 2 */}
                             <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
                               <img
-                                src={currentStep.lang === "es" ? "/tests/mmse/ear.png" : "/tests/mmse/watch.png"}
+                                src="/tests/mmse/watch.png"
                                 alt="Naming Object 2"
                                 style={{ width: "120px", height: "120px", objectFit: "contain", border: "1px solid var(--line)", borderRadius: "8px", background: "#fff" }}
                               />
@@ -1843,6 +1849,7 @@ export default function TestPage() {
                       {currentStep.type === "mmse_repetition" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
@@ -1977,6 +1984,7 @@ export default function TestPage() {
                           </div>
 
                           <WebcamCapture
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={details.text}
                             onCapture={(dataUrl) => updateAnswer(`pentagonDrawing_${currentStep.lang}`, dataUrl)}

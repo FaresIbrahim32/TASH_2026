@@ -35,7 +35,7 @@ export const TEMPORAL_SCHEMA = {
 export const SPATIAL_SCHEMA = {
   type: "OBJECT",
   properties: {
-    score: { type: "INTEGER", description: "Orientation spatial score (0 to 5)." },
+    score: { type: "INTEGER", description: "Orientation spatial score (0 to 3)." },
     transcript: { type: "STRING", description: "Verbatim transcription of the spoken answers." },
     rationale: { type: "STRING", description: "Auditing detail explaining matches and errors between spoken text and ground truth location values." }
   },

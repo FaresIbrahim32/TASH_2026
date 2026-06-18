@@ -661,30 +661,31 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
 
   // Calculate Temporal Ground Truth Target
   const createdDate = new Date(submission.createdAt || new Date().toISOString());
-  const localDateStr = createdDate.toLocaleString("en-US", { timeZone: submission.clientTimeZone || "UTC" });
-  const localDate = new Date(localDateStr);
-  
-  function getSeason(date) {
-    const month = date.getMonth(); // 0-11
-    if (month >= 2 && month <= 4) return "Spring";
-    if (month >= 5 && month <= 8) return "Summer";
-    if (month >= 9 && month <= 10) return "Autumn (or Fall)";
+  const tz = submission.clientTimeZone || "UTC";
+  const formatPart = (options) => createdDate.toLocaleString("en-US", { ...options, timeZone: tz });
+
+  function getSeasonForTimeZone(date, timeZone) {
+    const monthStr = date.toLocaleString("en-US", { month: "numeric", timeZone: timeZone || "UTC" });
+    const month = Number(monthStr); // 1-12
+    if (month >= 3 && month <= 5) return "Spring";
+    if (month >= 6 && month <= 9) return "Summer";
+    if (month >= 10 && month <= 11) return "Autumn (or Fall)";
     return "Winter";
   }
 
   const targetTemporal = {
-    year: localDate.getFullYear().toString(),
-    month: localDate.toLocaleString("en-US", { month: "long" }),
-    date: localDate.getDate().toString(),
-    day: localDate.toLocaleString("en-US", { weekday: "long" }),
-    season: getSeason(localDate)
+    year: formatPart({ year: "numeric" }),
+    month: formatPart({ month: "long" }),
+    date: formatPart({ day: "numeric" }),
+    day: formatPart({ weekday: "long" }),
+    season: getSeasonForTimeZone(createdDate, tz)
   };
 
   const REPETITION_PHRASES = {
     en: "No ifs, ands, or buts",
-    es: "Ni síes, ni noes, ni peros",
-    ar: "لا إف ولا أند ولا بوت",
-    "zh-TW": "沒有如果、但是、或可是"
+    es: "Es un día agradable y soleado, pero hace demasiado calor.",
+    ar: "أن ، لن ، إذن ، كي",
+    "zh-TW": "沒有如果、並且、或但是"
   };
   const targetPhrase = REPETITION_PHRASES[activeLangTab] || REPETITION_PHRASES.en;
 
