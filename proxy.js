@@ -8,10 +8,11 @@ export function proxy(request) {
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
   
   // Protect all routes except auth routes, public assets, and API endpoints
-  const isProtectedRoute = 
-    pathname === "/" || 
-    pathname.startsWith("/dashboard") || 
-    pathname.startsWith("/test");
+  const isProtectedRoute =
+    pathname === "/" ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/test") ||
+    pathname.startsWith("/mri");
 
   // If user is trying to access a protected page and doesn't have a session cookie, redirect to login
   if (isProtectedRoute && !sessionCookie) {
