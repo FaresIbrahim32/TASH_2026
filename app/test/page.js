@@ -1351,7 +1351,7 @@ export default function TestPage() {
                     />
                   </div>
                   <p style={{ color: "var(--muted)", fontSize: "0.85rem", lineHeight: 1.4 }}>
-                    A comprehensive, 30-point evaluation covering orientation, memory, math, and language. (Takes 10-15 minutes).
+                    A comprehensive, 28-point evaluation covering orientation, memory, math, and language. (Takes 10-15 minutes).
                   </p>
                 </div>
               </div>
@@ -1735,12 +1735,12 @@ export default function TestPage() {
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
-                                ? "Hable en el micrófono respondiendo a su estado, condado, ciudad, edificio y piso actual"
+                                ? "Hable en el micrófono respondiendo a su estado, condado y ciudad actual"
                                 : currentStep.lang === "zh-TW"
-                                ? "在麥克風中說出您目前所在的省/州、縣/區、城市、建築和樓層"
+                                ? "在麥克風中說出您目前所在的省/州、縣/區和城市"
                                 : currentStep.lang === "ar"
-                                ? "تحدث في الميكروفون مجيباً عن الولاية والمحافظة والمدينة والمبنى والطابق الحالي"
-                                : "Speak your current state, county, town, building, and floor into the microphone"
+                                ? "تحدث في الميكروفون مجيباً عن الولاية والمحافظة والمدينة الحالية"
+                                : "Speak your current state, county, and town into the microphone"
                             }
                             onConfirm={(audioDataUrl) => updateAnswer(`spatialAudio_${currentStep.lang}`, audioDataUrl)}
                           />
@@ -1781,6 +1781,7 @@ export default function TestPage() {
                             }
                           </p>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
