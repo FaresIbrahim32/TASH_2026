@@ -6,6 +6,7 @@ import {
   TEMPORAL_SCHEMA,
   SPATIAL_SCHEMA,
   ATTENTION_SCHEMA,
+  REPETITION_SCHEMA,
   WRITING_SCHEMA,
   PENTAGON_SCHEMA,
   prompts
@@ -234,7 +235,7 @@ export async function gradeRepetition(ai, audioUrl, targetPhrase) {
     if (!mediaPart) {
       return { score: 0, transcript: "", rationale: "Error: Failed to retrieve repetition audio." };
     }
-    return await callGemini(ai, prompts.repetition(targetPhrase), mediaPart, RECALL_SCHEMA); // RECALL_SCHEMA matches score, transcript, rationale
+    return await callGemini(ai, prompts.repetition(targetPhrase), mediaPart, REPETITION_SCHEMA);
   } catch (error) {
     return { score: 0, transcript: "", rationale: "Error while grading. Please try again." };
   }

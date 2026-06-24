@@ -53,6 +53,16 @@ export const ATTENTION_SCHEMA = {
   required: ["score", "taskPerformed", "transcript", "rationale"]
 };
 
+export const REPETITION_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    score: { type: "INTEGER", description: "Score assigned. Must be exactly 1 if the patient repeated the phrase correctly (minor articulation differences allowed), otherwise 0." },
+    transcript: { type: "STRING", description: "Verbatim transcription of what the patient said in the audio clip." },
+    rationale: { type: "STRING", description: "Comparison between what the patient said and the target phrase, explaining why the score was assigned." }
+  },
+  required: ["score", "transcript", "rationale"]
+};
+
 export const WRITING_SCHEMA = {
   type: "OBJECT",
   properties: {
