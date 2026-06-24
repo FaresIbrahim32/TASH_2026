@@ -36,6 +36,33 @@ export default function Dashboard({ user }) {
     }
   }, [activeView]);
 
+  // Poll every 5 seconds while any submission is still pending grading
+  useEffect(() => {
+    if (activeView !== "history") return;
+
+    const hasPending = submissions.some((sub) => {
+      const referenceTime = sub.answers?.regradeRequestedAt || sub.createdAt;
+      const elapsedMs = new Date().getTime() - new Date(referenceTime).getTime();
+      return !sub.answers?.screeningFlag && elapsedMs <= 8 * 60 * 1000;
+    });
+
+    if (!hasPending) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/submissions");
+        if (res.ok) {
+          const data = await res.json();
+          setSubmissions(data.submissions || []);
+        }
+      } catch (err) {
+        console.error("Grading status poll failed:", err);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [activeView, submissions]);
+
   async function fetchHistory() {
     setLoading(true);
     try {
