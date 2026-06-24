@@ -327,17 +327,17 @@ function getStepDetails(step, wordListIndex) {
   }
 
   if (step.type === "mmse_spatial") {
-    let text = "Please describe your current location aloud (including state/region, county/district, city/town, building/address, and floor/room). Click record to speak:";
-    let voiceText = "Please describe your current location aloud. State the state or region, the county or district, the city or town, the building name or address, and the floor or room number.";
+    let text = "Please describe your current location aloud (including state/region, county/district, and city/town). Click record to speak:";
+    let voiceText = "Please describe your current location aloud. State the state or region, the county or district, and the city or town.";
     if (lang === "es") {
-      text = "Describa su ubicación actual en voz alta (incluyendo estado/región, condado/distrito, ciudad/pueblo, edificio/dirección y piso/habitación). Haga clic en grabar para hablar:";
-      voiceText = "Por favor, describa su ubicación actual en voz alta. Indique el estado o región, el condado o distrito, la ciudad o pueblo, el edificio o dirección, y el piso o número de habitación.";
+      text = "Describa su ubicación actual en voz alta (incluyendo estado/región, condado/distrito y ciudad/pueblo). Haga clic en grabar para hablar:";
+      voiceText = "Por favor, describa su ubicación actual en voz alta. Indique el estado o región, el condado o distrito, y la ciudad o pueblo.";
     } else if (lang === "zh-TW") {
-      text = "請大聲描述您目前所在的位置（包括省/州/區域、縣/區、城市/城鎮、建築物名稱/地址和樓層/房間號碼）。點擊錄音開始說話：";
-      voiceText = "請大聲描述您目前所在的位置。請說出省/州/區域、縣/區、城市/城鎮、建築物名稱/地址和樓層/房間號碼。";
+      text = "請大聲描述您目前所在的位置（包括省/州/區域、縣/區和城市/城鎮）。點擊錄音開始說話：";
+      voiceText = "請大聲描述您目前所在的位置。請說出省/州/區域、縣/區和城市/城鎮。";
     } else if (lang === "ar") {
-      text = "يرجى وصف موقعك الحالي بصوت عالٍ (بما في ذلك الولاية/المنطقة، المحافظة/القضاء، المدينة/البلدة، اسم المبنى/العنوان، والطابق/رقم الغرفة). انقر على زر التسجيل للتحدث:";
-      voiceText = "يرجى وصف موقعك الحالي بصوت عالٍ. اذكر الولاية أو المنطقة، المحافظة أو القضاء، المدينة أو البلّدة، اسم المبنى أو العنوان، والطابق أو رقم الغرفة.";
+      text = "يرجى وصف موقعك الحالي بصوت عالٍ (بما في ذلك الولاية/المنطقة، المحافظة/القضاء، والمدينة/البلدة). انقر على زر التسجيل للتحدث:";
+      voiceText = "يرجى وصف موقعك الحالي بصوت عالٍ. اذكر الولاية أو المنطقة، المحافظة أو القضاء، والمدينة أو البلّدة.";
     }
     return { text, voiceText, voiceLocale: lang === "zh-TW" ? "zh-TW" : lang === "es" ? "es-US" : lang === "ar" ? "ar-SA" : "en-US" };
   }
@@ -659,10 +659,24 @@ export default function TestPage() {
                 const data = await res.json();
                 const addr = data.address || {};
                 
-                // Extract location using safe fallbacks for varying global tag structures
+                // Extract location using safe fallbacks for varying global tag structures.
+                // Nominatim field availability varies by country/region; the chain below covers
+                // cities, suburbs, unincorporated communities, rural localities, and city districts.
                 const resolvedState = addr.state || addr.province || addr.region || addr.prefecture || "";
                 const resolvedCounty = addr.county || addr.district || addr.municipality || addr.department || "";
-                const resolvedTown = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || "";
+                const resolvedTown =
+                  addr.city ||
+                  addr.town ||
+                  addr.village ||
+                  addr.hamlet ||
+                  addr.city_district ||
+                  addr.locality ||
+                  addr.neighbourhood ||
+                  addr.quarter ||
+                  addr.suburb ||
+                  // Last resort: use the first segment of the human-readable display_name
+                  // e.g. "Land O' Lakes, Pasco County, Florida, United States" → "Land O' Lakes"
+                  (data.display_name ? data.display_name.split(",")[0].trim() : "");
                 
                 setLocationGroundTruth({
                   state: resolvedState,
@@ -1337,7 +1351,7 @@ export default function TestPage() {
                     />
                   </div>
                   <p style={{ color: "var(--muted)", fontSize: "0.85rem", lineHeight: 1.4 }}>
-                    A comprehensive, 30-point evaluation covering orientation, memory, math, and language. (Takes 10-15 minutes).
+                    A comprehensive, 28-point evaluation covering orientation, memory, math, and language. (Takes 10-15 minutes).
                   </p>
                 </div>
               </div>
@@ -1415,10 +1429,8 @@ export default function TestPage() {
                   </div>
 
                   {locationStatus === "resolved" && (
-                    <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "12px", fontSize: "0.88rem", display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <div>State: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.state}</strong></div>
-                      <div>County: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.county}</strong></div>
-                      <div>Town/City: <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.town}</strong></div>
+                    <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "12px", fontSize: "0.88rem" }}>
+                      <strong style={{ color: "var(--ink)" }}>{locationGroundTruth.display_name || `${locationGroundTruth.town || ""}${locationGroundTruth.county ? ", " + locationGroundTruth.county : ""}${locationGroundTruth.state ? ", " + locationGroundTruth.state : ""}`}</strong>
                     </div>
                   )}
 
@@ -1678,6 +1690,7 @@ export default function TestPage() {
                       {/* 2. Mini-Cog Clock Drawing */}
                       {currentStep.type === "clock" && (
                         <WebcamCapture
+                          key={currentStep.id}
                           lang={currentStep.lang}
                           instruction={details.text}
                           onCapture={(dataUrl) => updateAnswer(`clockDrawing_${currentStep.lang}`, dataUrl)}
@@ -1687,6 +1700,7 @@ export default function TestPage() {
                       {/* 3. Mini-Cog Recall */}
                       {currentStep.type === "recall" && (
                         <AudioRecorder
+                          key={currentStep.id}
                           lang={currentStep.lang}
                           instruction={details.text}
                           onConfirm={(audioDataUrl) => updateAnswer(`recallAudio_${currentStep.lang}`, audioDataUrl)}
@@ -1697,6 +1711,7 @@ export default function TestPage() {
                       {currentStep.type === "mmse_temporal" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
@@ -1716,15 +1731,16 @@ export default function TestPage() {
                       {currentStep.type === "mmse_spatial" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
-                                ? "Hable en el micrófono respondiendo a su estado, condado, ciudad, edificio y piso actual"
+                                ? "Hable en el micrófono respondiendo a su estado, condado y ciudad actual"
                                 : currentStep.lang === "zh-TW"
-                                ? "在麥克風中說出您目前所在的省/州、縣/區、城市、建築和樓層"
+                                ? "在麥克風中說出您目前所在的省/州、縣/區和城市"
                                 : currentStep.lang === "ar"
-                                ? "تحدث في الميكروفون مجيباً عن الولاية والمحافظة والمدينة والمبنى والطابق الحالي"
-                                : "Speak your current state, county, town, building, and floor into the microphone"
+                                ? "تحدث في الميكروفون مجيباً عن الولاية والمحافظة والمدينة الحالية"
+                                : "Speak your current state, county, and town into the microphone"
                             }
                             onConfirm={(audioDataUrl) => updateAnswer(`spatialAudio_${currentStep.lang}`, audioDataUrl)}
                           />
@@ -1735,6 +1751,7 @@ export default function TestPage() {
                       {currentStep.type === "mmse_registration" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
@@ -1764,6 +1781,7 @@ export default function TestPage() {
                             }
                           </p>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
@@ -1782,6 +1800,7 @@ export default function TestPage() {
                       {/* 8. MMSE Recall */}
                       {currentStep.type === "mmse_recall" && (
                         <AudioRecorder
+                          key={currentStep.id}
                           lang={currentStep.lang}
                           instruction="Record yourself speaking the three words"
                           onConfirm={(audioDataUrl) => updateAnswer(`recallAudio_${currentStep.lang}`, audioDataUrl)}
@@ -1795,7 +1814,7 @@ export default function TestPage() {
                             {/* Object 1 */}
                             <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
                               <img
-                                src={currentStep.lang === "es" ? "/tests/mmse/eye.png" : "/tests/mmse/pencil.png"}
+                                src="/tests/mmse/pencil.png"
                                 alt="Naming Object 1"
                                 style={{ width: "120px", height: "120px", objectFit: "contain", border: "1px solid var(--line)", borderRadius: "8px", background: "#fff" }}
                               />
@@ -1811,7 +1830,7 @@ export default function TestPage() {
                             {/* Object 2 */}
                             <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
                               <img
-                                src={currentStep.lang === "es" ? "/tests/mmse/ear.png" : "/tests/mmse/watch.png"}
+                                src="/tests/mmse/watch.png"
                                 alt="Naming Object 2"
                                 style={{ width: "120px", height: "120px", objectFit: "contain", border: "1px solid var(--line)", borderRadius: "8px", background: "#fff" }}
                               />
@@ -1831,6 +1850,7 @@ export default function TestPage() {
                       {currentStep.type === "mmse_repetition" && (
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%" }}>
                           <AudioRecorder
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={
                               currentStep.lang === "es"
@@ -1965,6 +1985,7 @@ export default function TestPage() {
                           </div>
 
                           <WebcamCapture
+                            key={currentStep.id}
                             lang={currentStep.lang}
                             instruction={details.text}
                             onCapture={(dataUrl) => updateAnswer(`pentagonDrawing_${currentStep.lang}`, dataUrl)}
