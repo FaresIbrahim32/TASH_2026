@@ -1033,7 +1033,7 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
                     title="2. Three-Word Recall"
                     score={activeResults.recallScore || activeResults.itemizedGrading?.wordRecall?.score}
                     maxScore={3}
-                    question={`Recall the three target words memorized at the start: ${submission.targetWordsSecondary?.join(", ") || submission.targetWordsEnglish?.join(", ") || "Captain, Garden, Picture"}.`}
+                    question={`Recall the three target words memorized at the start: ${(activeLangTab === "en" ? submission.targetWordsEnglish : (submission.targetWordsSecondary || submission.targetWordsEnglish))?.join(", ") || "Captain, Garden, Picture"}.`}
                     responseContent={
                       getAnswerValue(answers, "recallAudio", activeLangTab) ? (
                         <audio src={getAnswerValue(answers, "recallAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
@@ -1089,7 +1089,7 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
                     title="3. Registration (Word Repetition)"
                     score={activeResults.itemizedGrading?.registration?.score}
                     maxScore={3}
-                    question={`Listen carefully to and repeat the three words immediately: ${submission.targetWordsSecondary?.join(", ") || submission.targetWordsEnglish?.join(", ") || "Apple, Table, Penny"}.`}
+                    question={`Listen carefully to and repeat the three words immediately: ${(activeLangTab === "en" ? submission.targetWordsEnglish : (submission.targetWordsSecondary || submission.targetWordsEnglish))?.join(", ") || "Apple, Table, Penny"}.`}
                     responseContent={
                       getAnswerValue(answers, "registrationAudio", activeLangTab) ? (
                         <audio src={getAnswerValue(answers, "registrationAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
@@ -1123,7 +1123,7 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
                     title="5. Three-Word Recall"
                     score={activeResults.itemizedGrading?.wordRecall?.score}
                     maxScore={3}
-                    question={`Recall the three words memorized in step 3: ${submission.targetWordsSecondary?.join(", ") || submission.targetWordsEnglish?.join(", ") || "Apple, Table, Penny"}.`}
+                    question={`Recall the three words memorized in step 3: ${(activeLangTab === "en" ? submission.targetWordsEnglish : (submission.targetWordsSecondary || submission.targetWordsEnglish))?.join(", ") || "Apple, Table, Penny"}.`}
                     responseContent={
                       getAnswerValue(answers, "recallAudio", activeLangTab) ? (
                         <audio src={getAnswerValue(answers, "recallAudio", activeLangTab)} controls style={{ width: "100%", maxWidth: "360px" }} />
