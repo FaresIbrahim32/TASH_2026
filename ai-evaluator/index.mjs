@@ -32,19 +32,19 @@ const REPETITION_PHRASES = {
   "zh-TW": "沒有如果、並且、或但是"
 };
 
-// Local translation matching list for object naming tasks
-const PENCIL_NAMES = [
-  "pencil", "pen", "crayon",
-  "lápiz", "lapiz", "bolígrafo", "pluma", "lapicero",
-  "鉛筆", "铅笔", "筆", "笔",
-  "قلم", "قلم رصاص"
-];
-const WATCH_NAMES = [
-  "watch", "wristwatch", "wrist-watch", "smartwatch", "smart-watch", "timepiece", "time-piece",
-  "reloj", "pulsera", "reloj de pulsera",
-  "手錶", "手表", "表",
-  "ساعة", "ساعه", "ساعة يد"
-];
+// Language-keyed name lists for object naming — enforces answers in the test language
+const PENCIL_NAMES_BY_LANG = {
+  en: ["pencil", "pen", "crayon"],
+  es: ["lápiz", "lapiz", "bolígrafo", "pluma", "lapicero"],
+  "zh-TW": ["鉛筆", "铅笔", "筆", "笔"],
+  ar: ["قلم", "قلم رصاص"]
+};
+const WATCH_NAMES_BY_LANG = {
+  en: ["watch", "wristwatch", "wrist-watch", "smartwatch", "smart-watch", "timepiece", "time-piece"],
+  es: ["reloj", "pulsera", "reloj de pulsera"],
+  "zh-TW": ["手錶", "手表", "表"],
+  ar: ["ساعة", "ساعه", "ساعة يد"]
+};
 
 function getSeasonForTimeZone(date, timeZone) {
   // Get month as a 1-indexed number directly in the client timezone
@@ -182,8 +182,10 @@ export async function handler(event) {
         // Resolve Naming Task (graded in code)
         const nameObj1 = (answers[`naming_object1_${lang}`] || "").trim().toLowerCase();
         const nameObj2 = (answers[`naming_object2_${lang}`] || "").trim().toLowerCase();
-        const name1Correct = PENCIL_NAMES.some(name => nameObj1.includes(name));
-        const name2Correct = WATCH_NAMES.some(name => nameObj2.includes(name));
+        const pencilNames = PENCIL_NAMES_BY_LANG[lang] || PENCIL_NAMES_BY_LANG.en;
+        const watchNames = WATCH_NAMES_BY_LANG[lang] || WATCH_NAMES_BY_LANG.en;
+        const name1Correct = pencilNames.some(name => nameObj1.includes(name));
+        const name2Correct = watchNames.some(name => nameObj2.includes(name));
         const namingScore = (name1Correct ? 1 : 0) + (name2Correct ? 1 : 0);
 
         // Resolve 3-Stage Command Tasks (graded in code)
@@ -216,7 +218,7 @@ export async function handler(event) {
           gradeAttentionCalculation(ai, answers[`attentionAudio_${lang}`]),
           gradeWordRecall(ai, answers[`recallAudio_${lang}`], targetWords),
           gradeRepetition(ai, answers[`repetitionAudio_${lang}`], targetPhrase),
-          gradeWritingSentence(ai, answers[`writingSentence_${lang}`]),
+          gradeWritingSentence(ai, answers[`writingSentence_${lang}`], lang),
           gradePentagonCopy(ai, answers[`pentagonDrawing_${lang}`])
         ]);
 

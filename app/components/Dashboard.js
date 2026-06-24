@@ -1171,20 +1171,20 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
                     title="8. Three-Stage Command"
                     score={activeResults.itemizedGrading?.command?.score}
                     maxScore={3}
-                    question="Take this paper in your right hand, fold it in half, and put it on the floor."
+                    question="Follow the on-screen instructions in order: (1) Touch the green circle, (2) Touch the red square, (3) Touch the yellow triangle."
                     responseContent={
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
                           <input type="checkbox" checked={activeResults.itemizedGrading?.command?.step1 === true || answers[`command_step1_${activeLangTab}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
-                          <span>Step 1: Took paper in right hand</span>
+                          <span>Step 1: Touched the green circle</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
                           <input type="checkbox" checked={activeResults.itemizedGrading?.command?.step2 === true || answers[`command_step2_${activeLangTab}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
-                          <span>Step 2: Folded paper in half</span>
+                          <span>Step 2: Touched the red square</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
                           <input type="checkbox" checked={activeResults.itemizedGrading?.command?.step3 === true || answers[`command_step3_${activeLangTab}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
-                          <span>Step 3: Placed paper on floor</span>
+                          <span>Step 3: Touched the yellow triangle</span>
                         </div>
                       </div>
                     }
@@ -1195,11 +1195,11 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
                     title="9. Reading & Obedience"
                     score={activeResults.itemizedGrading?.reading?.score !== undefined ? activeResults.itemizedGrading?.reading?.score : (answers[`readingObeyed_${activeLangTab}`] === true ? 1 : 0)}
                     maxScore={1}
-                    question="Read the instruction 'Close your eyes' and obey what it says."
+                    question="Read the bold on-screen command 'TAP THE ORANGE STAR' and tap the correct shape."
                     responseContent={
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
                         <input type="checkbox" checked={activeResults.itemizedGrading?.reading?.score === 1 || answers[`readingObeyed_${activeLangTab}`] === true} readOnly style={{ accentColor: "var(--teal)" }} />
-                        <span>Obeyed instruction (Closed eyes)</span>
+                        <span>Obeyed instruction (Tapped orange star)</span>
                       </div>
                     }
                   />

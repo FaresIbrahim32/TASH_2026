@@ -241,13 +241,13 @@ export async function gradeRepetition(ai, audioUrl, targetPhrase) {
   }
 }
 
-export async function gradeWritingSentence(ai, writtenSentence) {
+export async function gradeWritingSentence(ai, writtenSentence, lang = "en") {
   if (!writtenSentence || writtenSentence.trim() === "") {
     return { score: 0, rationale: "Error: No sentence written by the patient." };
   }
 
   try {
-    return await callGemini(ai, prompts.writingSentence(writtenSentence), null, WRITING_SCHEMA);
+    return await callGemini(ai, prompts.writingSentence(writtenSentence, lang), null, WRITING_SCHEMA);
   } catch (error) {
     return { score: 0, rationale: "Error while grading. Please try again." };
   }

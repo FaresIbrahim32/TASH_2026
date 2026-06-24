@@ -142,12 +142,15 @@ export const prompts = {
     Listen to the audio and score 1 point if they repeated it exactly or with negligible articulation differences, otherwise score 0.
     Return the transcript of the audio, the final score, and rationale.`,
 
-  writingSentence: (writtenSentence) => 
-    `The patient was asked to write a sentence on any topic.
+  writingSentence: (writtenSentence, lang = "en") => {
+    const langNames = { en: "English", es: "Spanish", "zh-TW": "Chinese (Traditional)", ar: "Arabic" };
+    const langName = langNames[lang] || "English";
+    return `The patient was asked to write a sentence on any topic in ${langName}.
     Evaluate the patient's written sentence: "${writtenSentence}".
-    Score 1 point if the sentence contains a subject and a verb, and has a clear semantic meaning (makes sense). Correct spelling and punctuation are not strictly required.
-    If it is empty, incomplete, or lacks a subject/verb, score 0.
-    Return the score (0 or 1) and your rationale.`,
+    Score 1 point if ALL of the following are true: (1) the sentence contains a subject and a verb, (2) it has a clear semantic meaning, AND (3) it is written in ${langName}. Correct spelling and punctuation are not strictly required.
+    If the sentence is empty, incomplete, lacks a subject/verb, or is written in a language other than ${langName}, score 0.
+    Return the score (0 or 1) and your rationale.`;
+  },
 
   pentagonCopy: () => 
     `Evaluate this hand-drawn image for the MMSE intersecting pentagon copy task.
