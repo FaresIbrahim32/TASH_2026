@@ -19,7 +19,7 @@ from google.genai import types
 _MODEL_PATH = os.path.join(os.path.dirname(__file__), "mobilenet_mri_dementia_final-2.keras")
 MODEL = tf.keras.models.load_model(_MODEL_PATH)
 
-CLASS_NAMES = ["MildDemented", "ModerateDemented", "NonDemented", "VeryMildDemented"]
+CLASS_NAMES = ["NonDemented", "MildOrVeryMildDemented", "ModerateDemented"]
 
 _GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 _GEMINI_MODEL   = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
@@ -44,8 +44,7 @@ def _check_is_brain_mri(image_bytes: bytes, mime_type: str) -> bool:
 def _classify(image_bytes: bytes) -> dict:
     """Preprocess image and run MobileNetV2 inference. Returns prediction dict."""
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB").resize((224, 224), Image.BILINEAR)
-    arr = np.array(img, dtype=np.float32)
-    arr = tf.keras.applications.mobilenet_v2.preprocess_input(arr)  # [0,255] → [-1,1]
+    arr = np.array(img, dtype=np.float32)  # raw [0,255] — preprocess_input is baked into the model
     arr = arr.reshape(1, 224, 224, 3)
     probs = MODEL.predict(arr, verbose=0)[0]
     predicted_idx = int(np.argmax(probs))
