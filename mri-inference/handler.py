@@ -16,7 +16,7 @@ from google.genai import types
 
 
 # Module-level singletons — loaded once on cold start, reused on warm invocations
-_MODEL_PATH = os.path.join(os.path.dirname(__file__), "mobilenet_mri_dementia_final-2.keras")
+_MODEL_PATH = os.path.join(os.path.dirname(__file__), "mobilenet_mri_dementia_3class_final.keras")
 MODEL = tf.keras.models.load_model(_MODEL_PATH)
 
 CLASS_NAMES = ["NonDemented", "MildOrVeryMildDemented", "ModerateDemented"]
@@ -51,7 +51,7 @@ def _classify(image_bytes: bytes) -> dict:
     return {
         "predictedClass": CLASS_NAMES[predicted_idx],
         "confidence": round(float(probs[predicted_idx]), 4),
-        "probabilities": {CLASS_NAMES[i]: round(float(probs[i]), 4) for i in range(4)},
+        "probabilities": {CLASS_NAMES[i]: round(float(probs[i]), 4) for i in range(len(CLASS_NAMES))},
     }
 
 
