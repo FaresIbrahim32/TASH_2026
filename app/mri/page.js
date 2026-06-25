@@ -278,7 +278,7 @@ export default function MriPage() {
         {status !== "done" && (
           <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "16px", padding: "32px", boxShadow: "var(--shadow)", marginBottom: "28px" }}>
             <h2 style={{ fontSize: "1.15rem", fontWeight: 700, color: "var(--teal-dark)", marginBottom: "20px", marginTop: 0 }}>
-              Upload MRI Scans
+              Upload Brain MRI Images
             </h2>
 
             {/* Drop zone */}
@@ -300,7 +300,7 @@ export default function MriPage() {
             >
               <Upload size={32} style={{ color: dragOver ? "var(--teal)" : "#9ca3af", margin: "0 auto 12px" }} />
               <p style={{ margin: "0 0 4px", fontWeight: 600, color: "var(--ink)", fontSize: "0.95rem" }}>
-                Drop brain MRI images here, or click to browse
+                Drop images here or Click to browse
               </p>
               <p style={{ margin: 0, color: "var(--muted)", fontSize: "0.82rem" }}>
                 PNG, JPG, WEBP &nbsp;·&nbsp; Max 4 MB per image &nbsp;·&nbsp; Up to {MAX_FILES} images
