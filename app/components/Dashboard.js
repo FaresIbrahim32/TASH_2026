@@ -18,6 +18,7 @@ import {
   Trash2,
   X,
   RefreshCw,
+  Brain,
 } from "lucide-react";
 
 const ALLOW_DELETION = process.env.NEXT_PUBLIC_ALLOW_RECORD_DELETION === "true";
@@ -313,6 +314,59 @@ export default function Dashboard({ user }) {
 
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold", fontSize: "0.9rem", color: "var(--teal)", marginTop: "24px" }}>
                   View History &rarr;
+                </div>
+              </div>
+
+              {/* Card 3: MRI Dementia Screener */}
+              <div
+                onClick={() => router.push("/mri")}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid var(--line)",
+                  borderRadius: "16px",
+                  padding: "32px",
+                  color: "var(--ink)",
+                  boxShadow: "var(--shadow)",
+                  cursor: "pointer",
+                  transition: "transform 0.25s ease, box-shadow 0.25s ease",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  minHeight: "260px",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = "translateY(-5px)";
+                  e.currentTarget.style.boxShadow = "0 15px 35px rgba(26, 43, 36, 0.15)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "var(--shadow)";
+                }}
+              >
+                <div>
+                  <div style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "12px",
+                    background: "rgba(15, 118, 110, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "24px",
+                  }}>
+                    <Brain size={24} style={{ color: "var(--teal)" }} />
+                  </div>
+                  <h3 style={{ fontSize: "1.35rem", fontWeight: 700, marginBottom: "8px", color: "var(--teal-dark)" }}>
+                    MRI Dementia Screener
+                  </h3>
+                  <p style={{ color: "var(--muted)", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                    Upload brain MRI images and get dementia predictions from our trained AI model.
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold", fontSize: "0.9rem", color: "var(--teal)", marginTop: "24px" }}>
+                  Open Screener &rarr;
                 </div>
               </div>
 
