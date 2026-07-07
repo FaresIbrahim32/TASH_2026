@@ -64,7 +64,8 @@ function getMimeType(key) {
 }
 
 // Helper to prepare file parts for Gemini
-async function prepareMediaPart(url) {
+// Exported so ai-evaluator/cultureGrader.mjs can reuse it unchanged.
+export async function prepareMediaPart(url) {
   const parsed = parseS3Url(url);
   if (!parsed) return null;
 
@@ -83,8 +84,11 @@ async function prepareMediaPart(url) {
   }
 }
 
-// Base handler for executing Gemini Content Generation calls
-async function callGemini(ai, prompt, mediaPart, schema, retries = 3, delayMs = 2000) {
+// Base handler for executing Gemini Content Generation calls.
+// Exported so ai-evaluator/cultureGrader.mjs can reuse it unchanged; accepts an
+// optional systemInstruction override (defaults to the clinical one below) so
+// non-clinical grading tasks aren't framed as a clinical evaluation.
+export async function callGemini(ai, prompt, mediaPart, schema, retries = 3, delayMs = 2000, systemInstruction = SYSTEM_INSTRUCTION) {
   const modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
   const contents = [prompt];
 
@@ -98,7 +102,7 @@ async function callGemini(ai, prompt, mediaPart, schema, retries = 3, delayMs = 
         model: modelName,
         contents,
         config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
+          systemInstruction,
           responseMimeType: "application/json",
           responseSchema: schema
         }

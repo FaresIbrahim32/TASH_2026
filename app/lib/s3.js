@@ -36,6 +36,8 @@ const EXTENSION_MAP = {
   "audio/mp4": "mp4",
   "audio/m4a": "m4a",
   "audio/aac": "aac",
+  "video/webm": "webm",
+  "video/mp4": "mp4",
 };
 
 /**

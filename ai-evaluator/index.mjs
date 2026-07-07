@@ -12,6 +12,7 @@ import {
   gradeWritingSentence,
   gradePentagonCopy
 } from "./grader.mjs";
+import { gradeCultureSession } from "./cultureGrader.mjs";
 
 const ddbClient = new DynamoDBClient({
   region: process.env.AWS_REGION || "us-east-2"
@@ -111,6 +112,12 @@ export async function handler(event) {
         statusCode: 404,
         body: JSON.stringify({ message: "Submission record not found." })
       };
+    }
+
+    // Early-exit for Cultural Connection sessions (SK: CULTURE#<timestamp>) — isolated
+    // from the Mini-Cog/MMSE grading chain below, which assumes a `testType`/`answers` shape.
+    if (typeof SK === "string" && SK.startsWith("CULTURE#")) {
+      return await gradeCultureSession(ai, docClient, UpdateCommand, PK, SK, submission);
     }
 
     const answers = submission.answers || {};
