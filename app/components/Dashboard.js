@@ -30,6 +30,19 @@ const FLAG_BADGE_COLORS = {
   high: { bg: "#fff5f5", text: "#991b1b" },
 };
 
+// The raw supporting measurements behind the Cultural Face Screen flag (see
+// scoreSession() in app/hooks/useFaceTracking.js), stored on faceTracking
+// alongside the flag itself. Kept visually secondary — heuristic,
+// non-validated numbers, not a diagnostic score.
+const FACE_METRICS = [
+  { key: "trackingQuality", label: "Tracking quality", format: (v) => `${Math.round((v ?? 0) * 100)}%` },
+  { key: "blinkRatePerMin", label: "Blink rate", format: (v) => `${(v ?? 0).toFixed(1)}/min` },
+  { key: "headMotionScore", label: "Head motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "gazeMotionScore", label: "Gaze motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "mouthMotionScore", label: "Mouth motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "expressionVariability", label: "Expression variability", format: (v) => (v ?? 0).toFixed(2) },
+];
+
 export default function Dashboard({ user }) {
   const router = useRouter();
   const [submissions, setSubmissions] = useState([]);
@@ -1682,6 +1695,20 @@ function CultureSessionDetailsModal({ session, onClose }) {
                   <li key={reason}>{reason}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {session.faceTracking && typeof session.faceTracking.trackingQuality === "number" && (
+            <div>
+              <h4 style={{ margin: "0 0 10px", fontSize: "0.95rem", fontWeight: 700, color: "var(--teal-dark)" }}>Session Measurements</h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px" }}>
+                {FACE_METRICS.map((m) => (
+                  <div key={m.key} style={{ border: "1px solid var(--line)", borderRadius: "8px", padding: "10px 12px", background: "#f9fafa" }}>
+                    <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--ink)" }}>{m.format(session.faceTracking[m.key])}</div>
+                    <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginTop: "2px" }}>{m.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

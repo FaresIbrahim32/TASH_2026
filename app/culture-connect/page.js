@@ -23,6 +23,19 @@ const FLAG_COLORS = {
   high: { bg: "#fff5f5", border: "#fee2e2", text: "#991b1b" },
 };
 
+// The raw supporting measurements behind the flag (see scoreSession() in
+// useFaceTracking.js). English-only labels to match the flag/reasons text,
+// which is also not localized. Kept visually secondary to the flag itself —
+// these are heuristic, non-validated numbers, not a diagnostic score.
+const FACE_METRICS = [
+  { key: "trackingQuality", label: "Tracking quality", format: (v) => `${Math.round((v ?? 0) * 100)}%` },
+  { key: "blinkRatePerMin", label: "Blink rate", format: (v) => `${(v ?? 0).toFixed(1)}/min` },
+  { key: "headMotionScore", label: "Head motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "gazeMotionScore", label: "Gaze motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "mouthMotionScore", label: "Mouth motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "expressionVariability", label: "Expression variability", format: (v) => (v ?? 0).toFixed(2) },
+];
+
 // Languages that exist as content but aren't wired up for a session yet.
 const COMING_SOON = [];
 
@@ -366,7 +379,7 @@ export default function CultureConnectPage() {
         throw new Error(errData.message || "Failed to save the session.");
       }
 
-      setResult({ flag, gameScore });
+      setResult({ flag, gameScore, summary: face.summary });
       setStage("results");
     } catch (err) {
       console.error("Culture session submit error:", err);
@@ -673,6 +686,24 @@ export default function CultureConnectPage() {
               <CheckCircle size={18} style={{ color: "var(--teal)" }} />
               {t.correctAnswers(result.gameScore.correct, result.gameScore.total)}
             </div>
+
+            {/* Supporting measurements behind the flag above — only shown if
+                tracking actually produced data (not, e.g., a denied-camera
+                session). Secondary/muted styling on purpose: heuristic
+                numbers, not a diagnostic score. */}
+            {result.summary && typeof result.summary.trackingQuality === "number" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--muted)" }}>Session measurements</span>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "8px" }}>
+                  {FACE_METRICS.map((m) => (
+                    <div key={m.key} style={{ border: "1px solid var(--line)", borderRadius: "8px", padding: "8px 10px", background: "#f9fafa" }}>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: "var(--ink)" }}>{m.format(result.summary[m.key])}</div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--muted)", marginTop: "2px" }}>{m.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>{t.transcriptNote}</p>
 
