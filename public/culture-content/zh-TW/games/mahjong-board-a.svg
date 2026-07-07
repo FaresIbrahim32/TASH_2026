@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" width="880" height="520">
+  <defs>
+    <linearGradient id="feltMA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e0a83a"/>
+      <stop offset="100%" stop-color="#b9822a"/>
+    </linearGradient>
+    <linearGradient id="ivoryMA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fffdf6"/>
+      <stop offset="100%" stop-color="#efe7d4"/>
+    </linearGradient>
+    <filter id="tileShadowMA" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#3a2208" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="880" height="520" rx="24" fill="url(#feltMA)"/>
+
+  <!-- Hand: two Red Dragon tiles + one blank tile needing a third -->
+  <g filter="url(#tileShadowMA)">
+    <rect x="255" y="80" width="110" height="150" rx="14" fill="url(#ivoryMA)" stroke="#c9bfa6" stroke-width="2"/>
+    <text x="310" y="180" text-anchor="middle" font-family="'Microsoft YaHei','PingFang TC','Noto Sans TC',sans-serif" font-size="64" font-weight="700" fill="#b3141c">中</text>
+  </g>
+  <g filter="url(#tileShadowMA)">
+    <rect x="385" y="80" width="110" height="150" rx="14" fill="url(#ivoryMA)" stroke="#c9bfa6" stroke-width="2"/>
+    <text x="440" y="180" text-anchor="middle" font-family="'Microsoft YaHei','PingFang TC','Noto Sans TC',sans-serif" font-size="64" font-weight="700" fill="#b3141c">中</text>
+  </g>
+  <g filter="url(#tileShadowMA)">
+    <rect x="515" y="80" width="110" height="150" rx="14" fill="#ffe7a3" stroke="#9c6b00" stroke-width="2"/>
+    <text x="570" y="185" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="60" font-weight="700" fill="#7a4e00">?</text>
+  </g>
+
+  <!-- Discard row: A-E -->
+  <!-- A: Dots suit (2) -->
+  <g filter="url(#tileShadowMA)">
+    <rect x="40" y="310" width="110" height="150" rx="14" fill="url(#ivoryMA)" stroke="#c9bfa6" stroke-width="2"/>
+    <circle cx="75" cy="375" r="13" fill="#c0392b"/>
+    <circle cx="115" cy="395" r="13" fill="#c0392b"/>
+  </g>
+  <!-- B: Bamboo suit (3 bars) — decoy -->
+  <g filter="url(#tileShadowMA)">
+    <rect x="210" y="310" width="110" height="150" rx="14" fill="url(#ivoryMA)" stroke="#c9bfa6" stroke-width="2"/>
+    <rect x="235" y="345" width="14" height="70" rx="6" fill="#2f9a55"/>
+    <rect x="258" y="345" width="14" height="70" rx="6" fill="#2f9a55"/>
+    <rect x="281" y="345" width="14" height="70" rx="6" fill="#2f9a55"/>
+  </g>
+  <!-- C: Red Dragon — CORRECT -->
+  <g filter="url(#tileShadowMA)">
+    <rect x="380" y="310" width="110" height="150" rx="14" fill="url(#ivoryMA)" stroke="#c9bfa6" stroke-width="2"/>
+    <text x="435" y="410" text-anchor="middle" font-family="'Microsoft YaHei','PingFang TC','Noto Sans TC',sans-serif" font-size="64" font-weight="700" fill="#b3141c">中</text>
+  </g>
+  <!-- D: Characters suit — decoy -->
+  <g filter="url(#tileShadowMA)">
+    <rect x="550" y="310" width="110" height="150" rx="14" fill="url(#ivoryMA)" stroke="#c9bfa6" stroke-width="2"/>
+    <text x="605" y="400" text-anchor="middle" font-family="'Microsoft YaHei','PingFang TC','Noto Sans TC',sans-serif" font-size="34" font-weight="700" fill="#1e1a12">五萬</text>
+  </g>
+  <!-- E: Dots suit (4) — decoy -->
+  <g filter="url(#tileShadowMA)">
+    <rect x="720" y="310" width="110" height="150" rx="14" fill="url(#ivoryMA)" stroke="#c9bfa6" stroke-width="2"/>
+    <circle cx="755" cy="365" r="12" fill="#c0392b"/>
+    <circle cx="805" cy="365" r="12" fill="#c0392b"/>
+    <circle cx="755" cy="405" r="12" fill="#c0392b"/>
+    <circle cx="805" cy="405" r="12" fill="#c0392b"/>
+  </g>
+
+  <!-- Labels -->
+  <text x="95" y="500" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="24" font-weight="700" fill="#3a2208">A</text>
+  <text x="265" y="500" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="24" font-weight="700" fill="#3a2208">B</text>
+  <text x="435" y="500" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="24" font-weight="700" fill="#3a2208">C</text>
+  <text x="605" y="500" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="24" font-weight="700" fill="#3a2208">D</text>
+  <text x="775" y="500" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="24" font-weight="700" fill="#3a2208">E</text>
+</svg>

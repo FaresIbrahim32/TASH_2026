@@ -26,7 +26,6 @@ const FLAG_COLORS = {
 // Languages that exist as content but aren't wired up for a session yet.
 const COMING_SOON = [
   { code: "ar", label: "العربية" },
-  { code: "zh-TW", label: "中文" },
 ];
 
 export default function CultureConnectPage() {
@@ -163,7 +162,10 @@ export default function CultureConnectPage() {
     };
 
     try {
-      const langPrefix = locale.split("-")[0];
+      let langPrefix = locale.split("-")[0];
+      if (langPrefix === "zh") {
+        langPrefix = "zh-TW";
+      }
       const queryUrl = `/api/tts?language=${encodeURIComponent(langPrefix)}&text=${encodeURIComponent(text)}`;
       const response = await fetch(queryUrl);
       if (response.ok) {

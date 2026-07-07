@@ -714,7 +714,7 @@ export default function Dashboard({ user }) {
                 Cultural Face Screen Sessions
               </h2>
               <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: "4px", marginBottom: "20px" }}>
-                Optional engagement sessions — not a clinical instrument.
+                Picture descriptions and cultural game questions, with a facial-behavior review flag.
               </p>
 
               {cultureLoading ? (
@@ -1666,21 +1666,6 @@ function CultureSessionDetailsModal({ session, onClose }) {
         </div>
 
         <div style={{ padding: "24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "24px", flex: 1 }}>
-          <div style={{
-            background: "#fffbeb",
-            border: "1px solid #fcd34d",
-            borderRadius: "10px",
-            padding: "14px 16px",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "10px",
-          }}>
-            <AlertTriangle size={16} style={{ color: "#d97706", flexShrink: 0, marginTop: "1px" }} />
-            <p style={{ margin: 0, fontSize: "0.82rem", color: "#92400e", lineHeight: 1.5 }}>
-              This is an optional engagement activity, not a clinical instrument or diagnosis.
-            </p>
-          </div>
-
           {flag && (
             <div style={{
               background: FLAG_BADGE_COLORS[flag.severity]?.bg || "#f1f5f9",
