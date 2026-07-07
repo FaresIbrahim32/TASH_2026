@@ -130,14 +130,14 @@ export const cultureUI = {
   en: {
     setupTitle: "Start a session",
     setupDescription:
-      "Optional ~2-minute activity: the patient describes a picture out loud, then answers 3 cultural game questions, while their facial behavior is analyzed. This is not a clinical diagnosis.",
+      "The patient describes a themed picture out loud and answers a few cultural game questions while their facial behavior is reviewed. Takes about 2 minutes.",
     languageLabel: "Choose a language",
     available: "Available",
     comingSoon: "Coming soon",
     continue: "Continue",
     consentTitle: "Before you begin",
     consentDisclaimer:
-      "This activity is not a clinical diagnosis. It reviews facial behavior and responses informally for the clinician to review.",
+      "This activity is not a clinical diagnosis.",
     consentDescription:
       "First you will describe a picture out loud for one minute (with the camera on). Then you will answer 3 short questions by tapping an option.",
     videoConsent: "Save this session's video (with sound) so the clinician can review it",
@@ -164,14 +164,14 @@ export const cultureUI = {
   es: {
     setupTitle: "Empezar una sesión",
     setupDescription:
-      "Actividad opcional de ~2 minutos: el paciente describe una imagen en voz alta y luego responde 3 preguntas de juegos culturales, mientras se analiza su comportamiento facial. No es un diagnóstico clínico.",
+      "El paciente describe una imagen temática en voz alta y responde algunas preguntas de juegos culturales mientras se revisa su comportamiento facial. Toma unos 2 minutos.",
     languageLabel: "Elige un idioma",
     available: "Disponible",
     comingSoon: "Próximamente",
     continue: "Continuar",
     consentTitle: "Antes de comenzar",
     consentDisclaimer:
-      "Esta actividad no es un diagnóstico clínico. Analiza el comportamiento facial y las respuestas de forma informal para que el clínico las revise.",
+      "Esta actividad no es un diagnóstico clínico.",
     consentDescription:
       "Primero describirás una imagen en voz alta durante un minuto (con la cámara encendida). Después responderás 3 preguntas cortas tocando una opción.",
     videoConsent: "Guardar el video de esta sesión (con sonido) para que el clínico pueda revisarlo",

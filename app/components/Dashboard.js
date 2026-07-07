@@ -19,7 +19,7 @@ import {
   X,
   RefreshCw,
   Brain,
-  Sparkles,
+  ScanFace,
 } from "lucide-react";
 
 const ALLOW_DELETION = process.env.NEXT_PUBLIC_ALLOW_RECORD_DELETION === "true";
@@ -466,13 +466,13 @@ export default function Dashboard({ user }) {
                     justifyContent: "center",
                     marginBottom: "24px",
                   }}>
-                    <Sparkles size={24} style={{ color: "var(--teal)" }} />
+                    <ScanFace size={24} style={{ color: "var(--teal)" }} />
                   </div>
                   <h3 style={{ fontSize: "1.35rem", fontWeight: 700, marginBottom: "8px", color: "var(--teal-dark)" }}>
                     Cultural Face Screen
                   </h3>
                   <p style={{ color: "var(--muted)", fontSize: "0.92rem", lineHeight: 1.5 }}>
-                    An optional ~2 minute activity: describe a picture and answer a few cultural game questions. Not a clinical instrument.
+                    Describe a themed picture out loud and answer a few cultural game questions while your facial behavior is reviewed. Takes about 2 minutes.
                   </p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold", fontSize: "0.9rem", color: "var(--teal)", marginTop: "24px" }}>
@@ -710,7 +710,7 @@ export default function Dashboard({ user }) {
             {/* Cultural Face Screen Sessions — separate list, own detail modal, does not touch the Mini-Cog/MMSE rendering above */}
             <div style={{ marginTop: "40px" }}>
               <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--teal-dark)", display: "flex", alignItems: "center", gap: "8px" }}>
-                <Sparkles size={20} />
+                <ScanFace size={20} />
                 Cultural Face Screen Sessions
               </h2>
               <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: "4px", marginBottom: "20px" }}>

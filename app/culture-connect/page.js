@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, AlertTriangle, CheckCircle, Loader2, Volume2, VolumeX, Sparkles } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle, Loader2, Volume2, VolumeX, ScanFace } from "lucide-react";
 import AudioRecorder from "../components/AudioRecorder";
 import { useFaceTracking } from "../hooks/useFaceTracking";
 import { pickCultureSession, cultureTests, cultureUI, supportedCultureLanguages } from "../lib/cultureContent";
@@ -378,7 +378,7 @@ export default function CultureConnectPage() {
           </button>
           <span style={{ color: "rgba(255,255,255,0.25)" }}>|</span>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Sparkles size={22} style={{ color: "#91d6cd" }} />
+            <ScanFace size={22} style={{ color: "#91d6cd" }} />
             <h1 style={{ margin: 0, fontSize: "clamp(1.1rem, 1.8vw, 1.5rem)", fontWeight: 700 }}>
               Cultural Face Screen
             </h1>
