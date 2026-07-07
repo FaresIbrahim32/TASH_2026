@@ -127,26 +127,6 @@ export async function POST(request) {
 
     await docClient.send(new PutCommand({ TableName: TABLE_NAME, Item: dbItem }));
 
-    // First session for this login account becomes the baseline (server-side
-    // equivalent of early-face-screener's localStorage "first session = baseline").
-    // This is a per-user tool (no patient identifier), so there is one baseline
-    // per login. Uses a conditional write (not a check-then-put) so two sessions
-    // submitted in quick succession can't race and overwrite each other's baseline.
-    const baselineKey = { PK, SK: "FACE_BASELINE" };
-    const { flag, ...summaryOnly } = data.faceTracking;
-    try {
-      await docClient.send(
-        new PutCommand({
-          TableName: TABLE_NAME,
-          Item: { ...baselineKey, summary: summaryOnly, createdAt: timestamp },
-          ConditionExpression: "attribute_not_exists(PK)",
-        })
-      );
-    } catch (err) {
-      if (err.name !== "ConditionalCheckFailedException") throw err;
-      // A baseline already exists for this login account — leave it as-is.
-    }
-
     // Fire-and-forget grading webhook — same target/auth as app/api/submissions/route.js;
     // the Lambda branches on the SK prefix to route this to the culture grader.
     const evaluatorUrl = process.env.AI_EVALUATOR_URL || process.env.AWS_GRADER_URL;

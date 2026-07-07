@@ -28,13 +28,13 @@ const COMING_SOON = [];
 
 export default function CultureConnectPage() {
   const router = useRouter();
-  const { modelStatus, modelError, isTracking, startTracking, stopTracking } = useFaceTracking();
+  const { modelStatus, modelError, isTracking, startTracking, stopTracking, overlayEnabled, setOverlayEnabled } =
+    useFaceTracking();
 
   const [stage, setStage] = useState("setup"); // setup | consent | session | submitting | results | error
   const [language, setLanguage] = useState("en");
   const [videoConsent, setVideoConsent] = useState(true);
   const [sessionContent, setSessionContent] = useState(null);
-  const [baseline, setBaseline] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // picture -> audio dataURL, game -> selected option
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -42,9 +42,12 @@ export default function CultureConnectPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const videoRef = useRef(null);
+  const overlayCanvasRef = useRef(null);
   const activeAudioRef = useRef(null);
   const sessionIdRef = useRef(null);
-  const faceResultRef = useRef(null); // { summary, flag, videoBlob } captured when the picture step ends
+  const faceResultRef = useRef(null); // { summary, flag, videoBlob } captured when recording stops
+  const faceStopPromiseRef = useRef(null); // in-flight stopTracking() promise, awaited before advancing / re-recording
+  const isAdvancingRef = useRef(false); // guards handleNextStep against a double-click firing it twice while the async stop is still in flight
 
   const t = cultureUI[language] || cultureUI.en;
   const dir = cultureTests[language]?.direction || "ltr";
@@ -70,30 +73,11 @@ export default function CultureConnectPage() {
 
   const currentStep = steps[stepIndex];
 
-  // Start webcam + face tracking when the session begins (step 0 is always the
-  // picture-description). Tracking is stopped the moment that step ends (see
-  // handleNextStep) — the game steps that follow are a silent click quiz.
-  useEffect(() => {
-    if (stage !== "session" || !videoRef.current) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        await startTracking(videoRef.current, { durationSec: 60, recordVideo: videoConsent });
-      } catch (err) {
-        console.error("Camera/mic access error:", err);
-        if (!cancelled) {
-          setErrorMsg(t.cameraError);
-          setStage("consent");
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage]);
+  // Note: face tracking (webcam + MediaPipe analysis + optional saved video) is
+  // deliberately NOT auto-started when the picture step opens. It's gated on the
+  // audio record button so the camera only turns on when the patient starts
+  // recording — see handleRecordingStart / handleRecordingStop, driven by the
+  // AudioRecorder's onRecordingStart / onRecordingStop.
 
   useEffect(() => {
     return () => stopAllSpeech();
@@ -179,21 +163,8 @@ export default function CultureConnectPage() {
     }
   }
 
-  async function handleSetupContinue() {
+  function handleSetupContinue() {
     setErrorMsg("");
-
-    // One facial-behavior baseline per login account (this is a per-user tool —
-    // no patient identifier). The first session ever run becomes the baseline;
-    // later sessions compare against it.
-    try {
-      const res = await fetch("/api/culture-baseline");
-      const data = await res.json();
-      setBaseline(data.baseline || null);
-    } catch (err) {
-      console.warn("Could not fetch existing baseline, proceeding without one:", err);
-      setBaseline(null);
-    }
-
     setSessionContent(pickCultureSession(language));
     setStage("consent");
   }
@@ -203,6 +174,7 @@ export default function CultureConnectPage() {
     setStepIndex(0);
     setAnswers({});
     faceResultRef.current = null;
+    faceStopPromiseRef.current = null;
     sessionIdRef.current = `culture_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     setStage("session");
   }
@@ -213,6 +185,51 @@ export default function CultureConnectPage() {
     setAnswers((prev) => ({ ...prev, [currentStep.id]: base64 }));
   }
 
+  // Fired by AudioRecorder when recording starts (Start Recording, or a Retake).
+  // Starts the webcam face-tracking in lockstep with the mic. On a retake this
+  // trashes the prior take's result and starts fresh.
+  async function handleRecordingStart() {
+    setErrorMsg("");
+    // If a previous take's stopTracking() is still flushing, let it finish
+    // before acquiring a fresh camera stream — otherwise the old stop could
+    // tear down the new stream mid-start.
+    if (faceStopPromiseRef.current) {
+      try {
+        await faceStopPromiseRef.current;
+      } catch {}
+      faceStopPromiseRef.current = null;
+    }
+    faceResultRef.current = null;
+    if (!videoRef.current) return;
+    try {
+      await startTracking(videoRef.current, {
+        durationSec: 60,
+        recordVideo: videoConsent,
+        overlayCanvas: overlayCanvasRef.current,
+      });
+    } catch (err) {
+      console.error("Camera/mic access error:", err);
+      setErrorMsg(t.cameraError);
+    }
+  }
+
+  // Fired by AudioRecorder when recording stops (Stop button, or the 60s cap).
+  // Stops face-tracking and captures the flag/video; the promise is stashed so
+  // handleNextStep can await it if the patient advances before it resolves.
+  function handleRecordingStop() {
+    // A fast double-click on "Stop" can fire this twice before the button
+    // unmounts. Guard so we only call stopTracking() once per take — a second
+    // concurrent call would see the recorder already 'inactive' and resolve
+    // with a null video blob, clobbering the real one. (Reset in
+    // handleRecordingStart for the next take.)
+    if (faceStopPromiseRef.current) return;
+    const promise = stopTracking();
+    faceStopPromiseRef.current = promise;
+    promise.then((result) => {
+      faceResultRef.current = result;
+    });
+  }
+
   // Game step: store the clicked option.
   function handleSelectOption(option) {
     if (!currentStep) return;
@@ -220,23 +237,38 @@ export default function CultureConnectPage() {
   }
 
   async function handleNextStep() {
-    stopAllSpeech();
+    // Guards against a double-click/double-tap re-entering this function while
+    // the picture step's `await` below is still in flight — the button's
+    // disabled state doesn't update fast enough to block a second click in the
+    // same tick, which would otherwise fire setStepIndex twice and skip a step.
+    if (isAdvancingRef.current) return;
+    isAdvancingRef.current = true;
 
-    // Picture step ends -> stop the webcam + face tracking and capture the
-    // flag/video now. Everything after this is a silent, untracked click quiz.
-    if (currentStep.type === "picture") {
-      faceResultRef.current = await stopTracking(baseline);
-      setStepIndex((i) => i + 1);
-      return;
+    try {
+      stopAllSpeech();
+
+      // Picture step: tracking was already stopped when the patient clicked
+      // "Stop" (handleRecordingStop). Just make sure that stop's async result
+      // has resolved before advancing. Everything after this is a silent,
+      // untracked click quiz.
+      if (currentStep.type === "picture") {
+        if (faceStopPromiseRef.current) {
+          faceResultRef.current = await faceStopPromiseRef.current;
+        }
+        setStepIndex((i) => i + 1);
+        return;
+      }
+
+      if (stepIndex < steps.length - 1) {
+        setStepIndex((i) => i + 1);
+        return;
+      }
+
+      setStage("submitting");
+      await submitSession();
+    } finally {
+      isAdvancingRef.current = false;
     }
-
-    if (stepIndex < steps.length - 1) {
-      setStepIndex((i) => i + 1);
-      return;
-    }
-
-    setStage("submitting");
-    await submitSession();
   }
 
   async function submitSession() {
@@ -489,14 +521,53 @@ export default function CultureConnectPage() {
               )}
             </div>
 
-            {/* The webcam preview only exists during the (tracked) picture step. */}
+            {/* The webcam box is mounted for the whole picture step (its ref
+                must exist before recording so startTracking can attach the
+                stream), but it stays black until the patient starts recording —
+                the camera only turns on then. The canvas is a purely visual
+                overlay for the live preview; MediaRecorder (in useFaceTracking)
+                records the raw camera MediaStream directly, so nothing drawn
+                here ever reaches the saved video file. */}
             {isPictureStep && (
-              <video
-                ref={videoRef}
-                muted
-                playsInline
-                style={{ width: "220px", height: "165px", borderRadius: "12px", objectFit: "cover", border: "2px solid var(--teal)", alignSelf: "center", background: "#000" }}
-              />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                {/* The border lives on this wrapper, not on the video/canvas
+                    themselves — if only the video had a border, its content-box
+                    (where object-fit:cover actually renders) would be a few
+                    pixels smaller than the canvas's, and the drawn landmark
+                    dots would be systematically offset from the real features
+                    they're tracking. Giving video and canvas identical,
+                    border-free 100%-of-wrapper boxes keeps them in registration. */}
+                <div style={{ position: "relative", width: "220px", height: "165px", border: "2px solid var(--teal)", borderRadius: "12px" }}>
+                  <video
+                    ref={videoRef}
+                    muted
+                    playsInline
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", borderRadius: "12px", objectFit: "cover", background: "#000" }}
+                  />
+                  <canvas
+                    ref={overlayCanvasRef}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: "12px",
+                      objectFit: "cover",
+                      pointerEvents: "none",
+                      visibility: overlayEnabled ? "visible" : "hidden",
+                    }}
+                  />
+                </div>
+                <label style={{ ...toggleRowStyle, width: "auto", padding: "6px 12px", fontSize: "0.78rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={overlayEnabled}
+                    onChange={(e) => setOverlayEnabled(e.target.checked)}
+                    style={{ minHeight: "auto", width: "16px", height: "16px" }}
+                  />
+                  {t.trackingMarkers}
+                </label>
+              </div>
             )}
 
             {currentStep.imageUrl && (
@@ -524,6 +595,8 @@ export default function CultureConnectPage() {
                 maxDurationSeconds={60}
                 instruction={t.audioInstruction}
                 onConfirm={handleAudioConfirm}
+                onRecordingStart={handleRecordingStart}
+                onRecordingStop={handleRecordingStop}
               />
             ) : (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
@@ -552,6 +625,8 @@ export default function CultureConnectPage() {
                 })}
               </div>
             )}
+
+            {errorMsg && <p style={{ color: "var(--red)", fontSize: "0.85rem", textAlign: "center", margin: 0 }}>{errorMsg}</p>}
 
             <button
               onClick={handleNextStep}

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Play, Pause, RotateCcw, Check, AlertCircle } from "lucide-react";
 
-export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, instruction = "Click record and speak clearly", lang = "en" }) {
+export default function AudioRecorder({ onConfirm, onRecordingStart, onRecordingStop, maxDurationSeconds = 60, instruction = "Click record and speak clearly", lang = "en" }) {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -82,11 +82,21 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
   const streamRef = useRef(null);
 
   const onConfirmRef = useRef(onConfirm);
+  const onRecordingStartRef = useRef(onRecordingStart);
+  const onRecordingStopRef = useRef(onRecordingStop);
   const audioBlobRef = useRef(null);
 
   useEffect(() => {
     onConfirmRef.current = onConfirm;
   }, [onConfirm]);
+
+  useEffect(() => {
+    onRecordingStartRef.current = onRecordingStart;
+  }, [onRecordingStart]);
+
+  useEffect(() => {
+    onRecordingStopRef.current = onRecordingStop;
+  }, [onRecordingStop]);
 
   useEffect(() => {
     audioBlobRef.current = audioBlob;
@@ -229,6 +239,9 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
       mediaRecorder.start(10); // Collect data every 10ms
       setIsRecording(true);
       startTimer();
+      // Signal the parent so it can start any coupled capture (e.g. the
+      // Cultural Face Screen's webcam face-tracking) in lockstep with the mic.
+      onRecordingStartRef.current?.();
     } catch (err) {
       console.error("Microphone access error:", err);
       setError(t.denied);
@@ -241,11 +254,14 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
     stopTimer();
     stopRecordingSession();
     setIsRecording(false);
-    
+
     // Stop visualizer animation
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
+    // Signal the parent so coupled capture stops in lockstep with the mic
+    // (fires for both the manual Stop button and the auto-stop at the cap).
+    onRecordingStopRef.current?.();
   }
 
   // Draw moving waveform on HTML5 Canvas

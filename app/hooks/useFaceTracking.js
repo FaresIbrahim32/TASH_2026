@@ -1,13 +1,15 @@
 "use client";
 
-// Ports early-face-screener/app.js's MediaPipe FaceLandmarker analysis
-// (measureFace/analyzeFrame/summarizeSession/scoreSession, including the
-// baseline-comparison block) into a React hook. The only behavioral change
-// from the prototype: `baseline` is passed in (fetched from DynamoDB by the
-// caller) instead of being read from localStorage.
+// A React hook around MediaPipe's FaceLandmarker: runs live facial-behavior
+// analysis (measureFace/analyzeFrame/summarizeSession) over a webcam stream
+// and computes a non-diagnostic review flag. Scoring is fixed-threshold only —
+// see scoreSession() for the research backing each threshold.
 //
 // Also owns an optional MediaRecorder on the same video stream, used when
-// the patient consents to saving the session video.
+// the patient consents to saving the session video, and an optional overlay
+// canvas that draws the tracked landmarks for the live DOM preview only —
+// MediaRecorder always records the raw camera MediaStream directly (see
+// startTracking), so the overlay never reaches the saved video file.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -23,6 +25,14 @@ const EXPRESSION_CATEGORIES = [
   "mouthSmileRight",
   "jawOpen",
 ];
+
+// Landmark indices used by measureFace() (what's actually scored).
+const LEFT_EYE = [159, 145, 33, 133]; // top, bottom, left, right
+const RIGHT_EYE = [386, 374, 362, 263];
+const MOUTH = [13, 14, 61, 291];
+const NOSE_INDEX = 1;
+const LEFT_IRIS_INDEX = 468;
+const RIGHT_IRIS_INDEX = 473;
 
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -42,21 +52,13 @@ function stdev(values) {
   return Math.sqrt(mean(values.map((v) => (v - avg) ** 2)));
 }
 
-function relativeDrop(current, baseline) {
-  return baseline > 0 ? Math.max(0, (baseline - current) / baseline) : 0;
-}
-
-function relativeRise(current, baseline) {
-  return baseline > 0 ? Math.max(0, (current - baseline) / baseline) : 0;
-}
-
 function measureFace(landmarks, blendshapes) {
-  const leftEyeOpen = verticalRatio(landmarks, 159, 145, 33, 133);
-  const rightEyeOpen = verticalRatio(landmarks, 386, 374, 362, 263);
-  const mouthOpen = verticalRatio(landmarks, 13, 14, 61, 291);
-  const nose = landmarks[1];
-  const leftIris = landmarks[468] || landmarks[33];
-  const rightIris = landmarks[473] || landmarks[263];
+  const leftEyeOpen = verticalRatio(landmarks, ...LEFT_EYE);
+  const rightEyeOpen = verticalRatio(landmarks, ...RIGHT_EYE);
+  const mouthOpen = verticalRatio(landmarks, ...MOUTH);
+  const nose = landmarks[NOSE_INDEX];
+  const leftIris = landmarks[LEFT_IRIS_INDEX] || landmarks[33];
+  const rightIris = landmarks[RIGHT_IRIS_INDEX] || landmarks[263];
   const gazePoint = {
     x: (leftIris.x + rightIris.x) / 2,
     y: (leftIris.y + rightIris.y) / 2,
@@ -74,6 +76,57 @@ function measureFace(landmarks, blendshapes) {
   };
 }
 
+// Keeps the overlay canvas's internal bitmap resolution matched to the
+// video's native size. Called every tracked frame (not just once after
+// `play()`) because a live getUserMedia MediaStream doesn't guarantee
+// videoWidth/videoHeight are populated the instant play() resolves — if they
+// were still 0 on the one-time assignment, the canvas would stay 0x0 (every
+// draw silently no-ops) for the rest of the session with no way to recover.
+// The width/height check makes this a no-op once sizes match, so it's cheap
+// to call unconditionally.
+function syncOverlayCanvasSize(canvas, videoEl) {
+  if (!canvas || !videoEl.videoWidth || !videoEl.videoHeight) return;
+  if (canvas.width !== videoEl.videoWidth || canvas.height !== videoEl.videoHeight) {
+    canvas.width = videoEl.videoWidth;
+    canvas.height = videoEl.videoHeight;
+  }
+}
+
+// Draws a face mask over the live preview only: a subtle full-face mesh plus
+// highlighted face-oval/eye/lip contours, via MediaPipe's own DrawingUtils +
+// FaceLandmarker's static connector arrays. The canvas's CSS box mirrors the <video>
+// element's own width/height/objectFit exactly (see culture-connect/page.js
+// — both are unbordered children of a bordered wrapper) and its internal
+// resolution is kept at the video's native size (see syncOverlayCanvasSize),
+// so DrawingUtils' normalized-landmark scaling lines up with the video pixels
+// underneath — no separate crop/scale math needed.
+function drawLandmarkOverlay(ctx, canvas, drawingUtils, FaceLandmarkerClass, landmarks) {
+  if (!ctx || !canvas) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!landmarks || !drawingUtils || !FaceLandmarkerClass) return;
+
+  drawingUtils.drawConnectors(landmarks, FaceLandmarkerClass.FACE_LANDMARKS_TESSELATION, {
+    color: "rgba(255,255,255,0.18)",
+    lineWidth: 1,
+  });
+  drawingUtils.drawConnectors(landmarks, FaceLandmarkerClass.FACE_LANDMARKS_FACE_OVAL, {
+    color: "#7be0c9",
+    lineWidth: 2,
+  });
+  drawingUtils.drawConnectors(landmarks, FaceLandmarkerClass.FACE_LANDMARKS_LEFT_EYE, {
+    color: "#f5c16c",
+    lineWidth: 2,
+  });
+  drawingUtils.drawConnectors(landmarks, FaceLandmarkerClass.FACE_LANDMARKS_RIGHT_EYE, {
+    color: "#f5c16c",
+    lineWidth: 2,
+  });
+  drawingUtils.drawConnectors(landmarks, FaceLandmarkerClass.FACE_LANDMARKS_LIPS, {
+    color: "#ff9178",
+    lineWidth: 2,
+  });
+}
+
 function summarizeSession(session) {
   const detectedSec = Math.max(session.durationSec, 1);
   const values = (key) => session.samples.map((sample) => sample[key]);
@@ -88,8 +141,19 @@ function summarizeSession(session) {
   };
 }
 
-// Ported from early-face-screener/app.js scoreSession(), baseline block included.
-function scoreSession(summary, baseline) {
+// Fixed-threshold scoring only. An earlier baseline-comparison block was
+// removed — the "baseline" was captured from whichever patient happened to run
+// the first-ever session on a given clinician login, with no way to reset it,
+// so later patients were being scored against an arbitrary,
+// possibly-already-impaired reference rather than their own prior visit; this
+// app has no patient identifier to guarantee it was even the same person.
+//
+// Each threshold's *direction* is grounded in published dementia/AD research
+// (cited inline). The exact cutoff values are heuristics tuned to this app's
+// own MediaPipe-derived metrics — no published study uses these formulas —
+// so this remains a screening nudge for a clinician to look closer, not a
+// diagnostic score.
+function scoreSession(summary) {
   const reasons = [];
   let points = 0;
 
@@ -101,37 +165,51 @@ function scoreSession(summary, baseline) {
     };
   }
 
+  // Blink rate: normal resting range is ~12-20/min, rising to ~30+/min during
+  // active conversation (task-dependent). MCI patients show significantly
+  // *higher* blink rate than age-matched controls, inversely correlated with
+  // MoCA score (Ladas et al. 2014, Int J Psychophysiol 93(1):12-6). The lower
+  // bound is a broader neuromotor-slowing catch (relevant to Lewy body
+  // dementia's parkinsonian features) rather than a core-AD-specific marker.
   if (summary.blinkRatePerMin < 5 || summary.blinkRatePerMin > 35) {
     points += 1;
     reasons.push("Blink rate is outside the expected broad range.");
   }
+  // Flat affect / hypomimia: well documented in AD, not just Parkinson's — one
+  // study found 58% of AD patients met a validated hypomimia threshold
+  // (MDS-UPDRS-III item 3.2) vs controls (p=0.02), correlating with disease
+  // duration (Cannavacciuolo et al. 2023, J Neural Transm 131(1):31-41).
   if (summary.expressionVariability < 0.08) {
     points += 1;
     reasons.push("Facial expressiveness is low during the task.");
   }
-  if (summary.headMotionScore < 0.08 || summary.headMotionScore > 1.9) {
+  // Head motion: only the "too still" direction is checked. Psychomotor
+  // slowing (reduced movement, not excess movement) is a consistently
+  // documented AD/Lewy body dementia finding across multiple motor measures
+  // (Bailon et al. 2010, Dement Geriatr Cogn Disord 29(5):388-96). No
+  // comparable evidence supports flagging *excess* head motion, so that side
+  // of the old range (>1.9) was dropped rather than carried over unexamined.
+  if (summary.headMotionScore < 0.08) {
     points += 1;
-    reasons.push("Head movement is unusually reduced or unstable.");
+    reasons.push("Head movement is unusually reduced during the task.");
   }
+  // Mouth motion: reduced, uncoordinated orofacial movement during speech
+  // (apraxia/hypokinesia) is documented in AD and worsens with severity.
   if (summary.mouthMotionScore < 0.03) {
     points += 1;
     reasons.push("Mouth movement is low for a speaking task.");
   }
 
-  if (baseline) {
-    const deltas = [
-      relativeDrop(summary.expressionVariability, baseline.expressionVariability),
-      relativeDrop(summary.mouthMotionScore, baseline.mouthMotionScore),
-      relativeRise(summary.headMotionScore, baseline.headMotionScore),
-      relativeRise(summary.gazeMotionScore, baseline.gazeMotionScore),
-    ];
-    if (deltas.some((delta) => delta > 0.35)) {
-      points += 2;
-      reasons.push("This session differs meaningfully from the patient baseline.");
-    }
-  }
+  // summary.gazeMotionScore is tracked and stored (see summarizeSession) but
+  // intentionally not scored here — AD-related gaze-variance findings exist
+  // in the literature, but no threshold has been vetted yet for this app's
+  // specific eye-landmark-derived metric. Revisit before adding a check for it.
 
-  if (points >= 4) return { level: "High review flag", severity: "high", reasons };
+  // Max achievable points is 4 (one per check above) now that the baseline
+  // comparison's +2 bonus is gone, so "High" only requires 3 of 4 independent
+  // signals to agree, not a literal unanimous 4/4 (which would make the tier
+  // practically unreachable in a single 60s task).
+  if (points >= 3) return { level: "High review flag", severity: "high", reasons };
   if (points >= 2) return { level: "Medium review flag", severity: "medium", reasons };
   return {
     level: "Low review flag",
@@ -145,8 +223,11 @@ export function useFaceTracking() {
   const [modelError, setModelError] = useState("");
   const [liveMetrics, setLiveMetrics] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
+  const [overlayEnabled, setOverlayEnabledState] = useState(true);
 
   const faceLandmarkerRef = useRef(null);
+  const faceLandmarkerClassRef = useRef(null); // the FaceLandmarker class itself, for its static FACE_LANDMARKS_* connector arrays
+  const drawingUtilsClassRef = useRef(null); // the DrawingUtils constructor, instantiated per-canvas in startTracking
   const streamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const videoChunksRef = useRef([]);
@@ -155,13 +236,25 @@ export function useFaceTracking() {
   const lastVideoTimeRef = useRef(-1);
   const animationIdRef = useRef(0);
   const runningRef = useRef(false);
+  const overlayCanvasRef = useRef(null);
+  const overlayCtxRef = useRef(null); // cached 2D context — avoids getContext() on every tracked frame
+  const drawingUtilsRef = useRef(null); // MediaPipe DrawingUtils instance wrapping overlayCtxRef.current
+  const overlayEnabledRef = useRef(true); // mirrors overlayEnabled state, read inside the rAF loop to avoid stale closures
+
+  const setOverlayEnabled = useCallback((enabled) => {
+    overlayEnabledRef.current = enabled;
+    setOverlayEnabledState(enabled);
+    if (!enabled && overlayCanvasRef.current) {
+      drawLandmarkOverlay(overlayCtxRef.current, overlayCanvasRef.current, drawingUtilsRef.current, faceLandmarkerClassRef.current, null);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     async function initModel() {
       try {
-        const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
+        const { FaceLandmarker, FilesetResolver, DrawingUtils } = await import("@mediapipe/tasks-vision");
         const resolver = await FilesetResolver.forVisionTasks(WASM_URL);
         const landmarker = await FaceLandmarker.createFromOptions(resolver, {
           baseOptions: { modelAssetPath: MODEL_URL, delegate: "CPU" },
@@ -172,6 +265,8 @@ export function useFaceTracking() {
         });
         if (cancelled) return;
         faceLandmarkerRef.current = landmarker;
+        faceLandmarkerClassRef.current = FaceLandmarker;
+        drawingUtilsClassRef.current = DrawingUtils;
         setModelStatus("ready");
       } catch (err) {
         console.error("Failed to load the facial-behavior tracker:", err);
@@ -212,16 +307,24 @@ export function useFaceTracking() {
     const session = sessionRef.current;
     if (!session || !faceLandmarkerRef.current) return;
 
+    if (overlayEnabledRef.current) syncOverlayCanvasSize(overlayCanvasRef.current, videoEl);
+
     const result = faceLandmarkerRef.current.detectForVideo(videoEl, nowMs);
     session.frames += 1;
 
     if (!result.faceLandmarks?.length) {
+      if (overlayEnabledRef.current) {
+        drawLandmarkOverlay(overlayCtxRef.current, overlayCanvasRef.current, drawingUtilsRef.current, faceLandmarkerClassRef.current, null);
+      }
       setLiveMetrics(summarizeSession(session));
       return;
     }
 
     session.detectedFrames += 1;
     const landmarks = result.faceLandmarks[0];
+    if (overlayEnabledRef.current) {
+      drawLandmarkOverlay(overlayCtxRef.current, overlayCanvasRef.current, drawingUtilsRef.current, faceLandmarkerClassRef.current, landmarks);
+    }
     const metrics = measureFace(landmarks, result.faceBlendshapes?.[0]?.categories || []);
 
     const last = lastMetricsRef.current;
@@ -268,16 +371,25 @@ export function useFaceTracking() {
   /**
    * Starts the webcam + live face tracking on the given <video> element.
    * @param {HTMLVideoElement} videoEl
-   * @param {{ durationSec: number, recordVideo: boolean }} options
+   * @param {{ durationSec: number, recordVideo: boolean, overlayCanvas?: HTMLCanvasElement|null }} options
    */
   const startTracking = useCallback(
-    async (videoEl, { durationSec, recordVideo }) => {
+    async (videoEl, { durationSec, recordVideo, overlayCanvas }) => {
       // Set the guard synchronously, before any `await` — otherwise two
       // near-simultaneous calls (e.g. React StrictMode's dev-only double-effect)
       // would both pass this check while the first is still awaiting
       // getUserMedia, starting two overlapping camera streams/tick loops.
       if (runningRef.current) return;
       runningRef.current = true;
+
+      // Taking the canvas as a startTracking() option (rather than a separate
+      // attachOverlayCanvas() call made by the caller beforehand) means there's
+      // no ordering dependency to get wrong — the element and its context are
+      // always in place before the tick loop that would read them ever runs.
+      overlayCanvasRef.current = overlayCanvas || null;
+      overlayCtxRef.current = overlayCanvas ? overlayCanvas.getContext("2d") : null;
+      drawingUtilsRef.current =
+        overlayCtxRef.current && drawingUtilsClassRef.current ? new drawingUtilsClassRef.current(overlayCtxRef.current) : null;
 
       try {
         // Include a mic track only when we'll actually save the video, so the
@@ -292,6 +404,11 @@ export function useFaceTracking() {
         streamRef.current = stream;
         videoEl.srcObject = stream;
         await videoEl.play();
+
+        // Best-effort initial sizing; analyzeFrame's per-frame
+        // syncOverlayCanvasSize() call is what actually guarantees correctness
+        // if videoWidth/videoHeight aren't populated yet at this point.
+        syncOverlayCanvasSize(overlayCanvasRef.current, videoEl);
 
         sessionRef.current = {
           startedAtMs: Date.now(),
@@ -350,13 +467,12 @@ export function useFaceTracking() {
   );
 
   /**
-   * Stops tracking, computes the summary + flag (optionally against a
-   * baseline), and resolves the recorded video Blob (if any) only after the
-   * MediaRecorder's `onstop` has actually flushed its last chunk.
-   * @param {object|null} baseline
+   * Stops tracking, computes the summary + flag, and resolves the recorded
+   * video Blob (if any) only after the MediaRecorder's `onstop` has actually
+   * flushed its last chunk.
    * @returns {Promise<{ summary: object|null, flag: object|null, videoBlob: Blob|null }>}
    */
-  const stopTracking = useCallback((baseline) => {
+  const stopTracking = useCallback(() => {
     runningRef.current = false;
     setIsTracking(false);
     cancelAnimationFrame(animationIdRef.current);
@@ -367,6 +483,9 @@ export function useFaceTracking() {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
         }
+        overlayCanvasRef.current = null;
+        overlayCtxRef.current = null;
+        drawingUtilsRef.current = null;
 
         const session = sessionRef.current;
         if (!session) {
@@ -376,7 +495,7 @@ export function useFaceTracking() {
 
         session.durationSec = Math.max(1, (Date.now() - session.startedAtMs) / 1000);
         const summary = summarizeSession(session);
-        const flag = scoreSession(summary, baseline);
+        const flag = scoreSession(summary);
         resolve({ summary, flag, videoBlob });
       }
 
@@ -397,5 +516,14 @@ export function useFaceTracking() {
     });
   }, []);
 
-  return { modelStatus, modelError, liveMetrics, isTracking, startTracking, stopTracking };
+  return {
+    modelStatus,
+    modelError,
+    liveMetrics,
+    isTracking,
+    startTracking,
+    stopTracking,
+    overlayEnabled,
+    setOverlayEnabled,
+  };
 }
