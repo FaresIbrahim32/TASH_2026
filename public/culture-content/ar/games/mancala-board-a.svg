@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480">
+  <defs>
+    <linearGradient id="wood_mancala-board-a" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e2a86b"/>
+      <stop offset="100%" stop-color="#d98f5f"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="900" height="480" rx="24" fill="url(#wood_mancala-board-a)"/>
+  <rect x="12" y="12" width="876" height="456" rx="16" fill="none" stroke="#7a3e1d" stroke-width="4"/>
+
+  <!-- side stores (not counted in the simplified sowing rule, shown for authenticity) -->
+  
+    <circle cx="75" cy="125" r="55" fill="#7b3f1d" stroke="#4a2410" stroke-width="5"/>
+    <circle cx="75" cy="355" r="55" fill="#7b3f1d" stroke="#4a2410" stroke-width="5"/>
+    <rect x="20" y="125" width="110" height="230" fill="#7b3f1d"/>
+    <line x1="20" y1="125" x2="20" y2="355" stroke="#4a2410" stroke-width="5"/>
+    <line x1="130" y1="125" x2="130" y2="355" stroke="#4a2410" stroke-width="5"/>
+  
+    <circle cx="825" cy="125" r="55" fill="#7b3f1d" stroke="#4a2410" stroke-width="5"/>
+    <circle cx="825" cy="355" r="55" fill="#7b3f1d" stroke="#4a2410" stroke-width="5"/>
+    <rect x="770" y="125" width="110" height="230" fill="#7b3f1d"/>
+    <line x1="770" y1="125" x2="770" y2="355" stroke="#4a2410" stroke-width="5"/>
+    <line x1="880" y1="125" x2="880" y2="355" stroke="#4a2410" stroke-width="5"/>
+
+  <!-- 12 pits -->
+  <circle cx="190" cy="330" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="294" cy="330" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="398" cy="330" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="502" cy="330" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="606" cy="330" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="710" cy="330" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="710" cy="150" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="606" cy="150" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="502" cy="150" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="398" cy="150" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="294" cy="150" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <circle cx="190" cy="150" r="42" fill="#7b3f1d" stroke="#4a2410" stroke-width="4"/>
+  <text x="190" y="396" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">1</text>
+  <text x="294" y="396" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">2</text>
+  <text x="398" y="396" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">3</text>
+  <text x="502" y="396" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">4</text>
+  <text x="606" y="396" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">5</text>
+  <text x="710" y="396" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">6</text>
+  <text x="710" y="90" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">7</text>
+  <text x="606" y="90" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">8</text>
+  <text x="502" y="90" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">9</text>
+  <text x="398" y="90" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">10</text>
+  <text x="294" y="90" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">11</text>
+  <text x="190" y="90" fill="#3a2410" font-size="15" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">12</text>
+
+  <!-- start pit: gold ring + visible bead count -->
+  <circle cx="606" cy="150" r="49" fill="none" stroke="#d4af37" stroke-width="4"/>
+  <circle cx="606.0" cy="135.0" r="7.5" fill="#4FC3F7" stroke="#5e5e5e" stroke-width="1.5"/>
+    <circle cx="629.0" cy="150.0" r="7.5" fill="#66BB6A" stroke="#5e5e5e" stroke-width="1.5"/>
+    <circle cx="606.0" cy="165.0" r="7.5" fill="#EF5350" stroke="#5e5e5e" stroke-width="1.5"/>
+    <circle cx="583.0" cy="150.0" r="7.5" fill="#FFCA28" stroke="#5e5e5e" stroke-width="1.5"/>
+
+  <!-- lettered candidate pits -->
+  
+    <circle cx="710" cy="150" r="30" fill="rgba(255,255,255,0.9)" stroke="#c0392b" stroke-width="4"/>
+    <text x="710" y="159" fill="#5a1a12" font-size="24" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">A</text>
+    <circle cx="502" cy="150" r="30" fill="rgba(255,255,255,0.9)" stroke="#c0392b" stroke-width="4"/>
+    <text x="502" y="159" fill="#5a1a12" font-size="24" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">B</text>
+    <circle cx="190" cy="150" r="30" fill="rgba(255,255,255,0.9)" stroke="#c0392b" stroke-width="4"/>
+    <text x="190" y="159" fill="#5a1a12" font-size="24" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">C</text>
+    <circle cx="294" cy="150" r="30" fill="rgba(255,255,255,0.9)" stroke="#c0392b" stroke-width="4"/>
+    <text x="294" y="159" fill="#5a1a12" font-size="24" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">D</text>
+    <circle cx="190" cy="330" r="30" fill="rgba(255,255,255,0.9)" stroke="#c0392b" stroke-width="4"/>
+    <text x="190" y="339" fill="#5a1a12" font-size="24" font-weight="700" text-anchor="middle" font-family="Verdana, Arial, sans-serif">E</text>
+</svg>

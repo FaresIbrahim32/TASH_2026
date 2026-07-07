@@ -1,13 +1,16 @@
 // Content + UI strings for the Cultural Face Screen feature.
-// Structured per-language so `ar`/`zh-TW` can be added later without touching
+// Structured per-language so new languages can be added without touching
 // page/hook code. Picture images are per-language (culturally themed); the
 // Ludo/Domino board images are language-neutral and shared from
-// /culture-content/games/.
+// /culture-content/games/. `direction` ("ltr"/"rtl") mirrors the schema
+// already used in app/lib/tests.js — culture-connect/page.js reads it to set
+// `dir` on the session wrapper for Arabic.
 export const cultureTests = {
   en: {
     label: "English",
     nativeLabel: "English",
     voiceLocale: "en-US",
+    direction: "ltr",
     // Same spoken instruction for every picture-description prompt; only the image changes.
     pictureInstruction:
       "Look at this picture carefully. Describe everything you see: the people, the colors, the objects, and what is happening. Keep talking until the time runs out.",
@@ -68,6 +71,7 @@ export const cultureTests = {
     label: "Spanish",
     nativeLabel: "Español",
     voiceLocale: "es-ES",
+    direction: "ltr",
     pictureInstruction:
       "Mira esta imagen con atención. Descríbeme todo lo que ves: las personas, los colores, los objetos y lo que está pasando. Sigue hablando hasta que se acabe el tiempo.",
     pictures: [
@@ -126,6 +130,7 @@ export const cultureTests = {
     label: "Chinese",
     nativeLabel: "中文",
     voiceLocale: "zh-TW",
+    direction: "ltr",
     pictureInstruction:
       "請仔細看這張圖片。描述你所看到的一切：人物、顏色、物品，以及正在發生的事情。請持續說話，直到時間結束。",
     pictures: [
@@ -182,6 +187,63 @@ export const cultureTests = {
         expectedAnswer: "D",
         options: ["A", "B", "C", "D", "E"],
         imageUrl: "/culture-content/zh-TW/games/mahjong-board-b.svg",
+      },
+    ],
+  },
+  ar: {
+    label: "Arabic",
+    nativeLabel: "العربية",
+    voiceLocale: "ar-SA",
+    direction: "rtl",
+    pictureInstruction:
+      "انظر إلى هذه الصورة بعناية. صف كل ما تراه: الأشخاص، الألوان، الأشياء، وما يحدث. استمر في الحديث حتى ينتهي الوقت.",
+    pictures: [
+      { id: "picture_souk", imageUrl: "/culture-content/ar/picture-souk.jpg" },
+      { id: "picture_coffee_hospitality", imageUrl: "/culture-content/ar/picture-coffee-hospitality.jpg" },
+      { id: "picture_ramadan_iftar", imageUrl: "/culture-content/ar/picture-ramadan-iftar.jpg" },
+    ],
+    games: [
+      {
+        id: "mancala_sow_a",
+        question: "خذ الخرز من الحفرة 8. في أي حفرة ستنتهي؟",
+        expectedAnswer: "C",
+        options: ["A", "B", "C", "D", "E"],
+        imageUrl: "/culture-content/ar/games/mancala-board-a.svg",
+      },
+      {
+        id: "mancala_sow_b",
+        question: "خذ الخرز من الحفرة 3. في أي حفرة ستنتهي؟",
+        expectedAnswer: "B",
+        options: ["A", "B", "C", "D", "E"],
+        imageUrl: "/culture-content/ar/games/mancala-board-b.svg",
+      },
+      {
+        id: "mancala_sow_c",
+        question: "خذ الخرز من الحفرة 11. في أي حفرة ستنتهي؟",
+        expectedAnswer: "D",
+        options: ["A", "B", "C", "D", "E"],
+        imageUrl: "/culture-content/ar/games/mancala-board-c.svg",
+      },
+      {
+        id: "mancala_sow_d",
+        question: "خذ الخرز من الحفرة 5. في أي حفرة ستنتهي؟",
+        expectedAnswer: "E",
+        options: ["A", "B", "C", "D", "E"],
+        imageUrl: "/culture-content/ar/games/mancala-board-d.svg",
+      },
+      {
+        id: "mancala_sow_e",
+        question: "خذ الخرز من الحفرة 10. في أي حفرة ستنتهي؟",
+        expectedAnswer: "A",
+        options: ["A", "B", "C", "D", "E"],
+        imageUrl: "/culture-content/ar/games/mancala-board-e.svg",
+      },
+      {
+        id: "mancala_sow_f",
+        question: "خذ الخرز من الحفرة 1. في أي حفرة ستنتهي؟",
+        expectedAnswer: "C",
+        options: ["A", "B", "C", "D", "E"],
+        imageUrl: "/culture-content/ar/games/mancala-board-f.svg",
       },
     ],
   },
@@ -291,6 +353,39 @@ export const cultureUI = {
     cameraError:
       "無法存取攝影機或麥克風。請檢查瀏覽器權限後再試一次。",
     saveError: "無法儲存場次。請檢查網路連線後再試一次。",
+  },
+  ar: {
+    setupTitle: "بدء جلسة",
+    setupDescription:
+      "يصف المريض صورة ذات طابع ثقافي بصوت مسموع ويجيب عن بضعة أسئلة من ألعاب ثقافية، بينما تُراجَع تعابير وجهه. تستغرق العملية نحو دقيقتين.",
+    languageLabel: "اختر اللغة",
+    available: "متاح",
+    comingSoon: "قريبًا",
+    continue: "متابعة",
+    consentTitle: "قبل أن تبدأ",
+    consentDisclaimer: "هذا النشاط ليس تشخيصًا سريريًا.",
+    consentDescription:
+      "أولًا، ستصف صورة بصوت مسموع لمدة دقيقة واحدة (مع تشغيل الكاميرا). بعد ذلك، ستجيب عن 3 أسئلة قصيرة بالنقر على أحد الخيارات.",
+    videoConsent: "حفظ فيديو هذه الجلسة (مع الصوت) ليتمكن الطبيب المعالج من مراجعته",
+    start: "بدء الجلسة",
+    preparing: "جارٍ تجهيز أداة تحليل الوجه…",
+    stepOf: (a, b) => `الخطوة ${a} من ${b}`,
+    recording: "جارٍ تسجيل سلوك الوجه",
+    listen: "استماع",
+    stopVoice: "إيقاف",
+    next: "التالي",
+    finish: "إنهاء الجلسة",
+    audioInstruction: "تحدث لمدة 60 ثانية عن كل ما تراه في الصورة.",
+    saving: "جارٍ حفظ الجلسة…",
+    resultsTitle: "اكتملت الجلسة",
+    correctAnswers: (a, b) => `الإجابات الصحيحة: ${a} من ${b}`,
+    transcriptNote:
+      "يجري حاليًا تفريغ وصف الصورة نصيًا. سيكون متاحًا في لوحة التحكم خلال لحظات.",
+    back: "العودة إلى لوحة التحكم",
+    errorTitle: "تعذّر حفظ الجلسة",
+    cameraError:
+      "تعذّر الوصول إلى الكاميرا أو الميكروفون. يرجى التحقق من أذونات المتصفح والمحاولة مرة أخرى.",
+    saveError: "تعذّر حفظ الجلسة. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.",
   },
 };
 

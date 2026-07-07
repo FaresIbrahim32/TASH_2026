@@ -24,9 +24,7 @@ const FLAG_COLORS = {
 };
 
 // Languages that exist as content but aren't wired up for a session yet.
-const COMING_SOON = [
-  { code: "ar", label: "العربية" },
-];
+const COMING_SOON = [];
 
 export default function CultureConnectPage() {
   const router = useRouter();
@@ -49,6 +47,7 @@ export default function CultureConnectPage() {
   const faceResultRef = useRef(null); // { summary, flag, videoBlob } captured when the picture step ends
 
   const t = cultureUI[language] || cultureUI.en;
+  const dir = cultureTests[language]?.direction || "ltr";
 
   const steps = sessionContent
     ? [
@@ -388,7 +387,7 @@ export default function CultureConnectPage() {
         </div>
       </header>
 
-      <div style={{ flex: 1, padding: "40px clamp(18px, 4vw, 44px)", maxWidth: "760px", width: "100%", margin: "0 auto" }}>
+      <div dir={dir} style={{ flex: 1, padding: "40px clamp(18px, 4vw, 44px)", maxWidth: "760px", width: "100%", margin: "0 auto" }}>
         {stage === "setup" && (
           <div style={cardStyle}>
             <h2 style={titleStyle}>{t.setupTitle}</h2>
@@ -407,7 +406,6 @@ export default function CultureConnectPage() {
                       style={{
                         ...cultureCardStyle,
                         cursor: "pointer",
-                        textAlign: "left",
                         font: "inherit",
                         borderColor: isSel ? "var(--teal)" : "var(--line)",
                         background: isSel ? "rgba(15,118,110,0.08)" : "#ffffff",
@@ -589,7 +587,7 @@ export default function CultureConnectPage() {
               }}
             >
               <strong style={{ fontSize: "0.95rem" }}>{result.flag.level}</strong>
-              <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.85rem" }}>
+              <ul style={{ margin: 0, paddingInlineStart: "18px", fontSize: "0.85rem" }}>
                 {result.flag.reasons.map((reason) => (
                   <li key={reason}>{reason}</li>
                 ))}

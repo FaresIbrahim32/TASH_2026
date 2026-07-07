@@ -415,7 +415,7 @@ export default function AudioRecorder({ onConfirm, maxDurationSeconds = 60, inst
             style={{
               position: "absolute",
               top: "12px",
-              right: "12px",
+              insetInlineEnd: "12px",
               background: "rgba(180, 35, 24, 0.1)",
               border: "1px solid rgba(180, 35, 24, 0.2)",
               color: "var(--red)",
