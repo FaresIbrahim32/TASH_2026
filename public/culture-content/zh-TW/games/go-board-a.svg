@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 700" width="820" height="700">
+  <defs>
+    <linearGradient id="woodGA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dba05f"/>
+      <stop offset="100%" stop-color="#b97e3e"/>
+    </linearGradient>
+    <radialGradient id="stoneBlackA" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#5a5a5a"/>
+      <stop offset="60%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <radialGradient id="stoneWhiteA" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#eceae4"/>
+      <stop offset="100%" stop-color="#c9c5ba"/>
+    </radialGradient>
+    <filter id="stoneShadowGA" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#2a1808" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="820" height="700" rx="20" fill="url(#woodGA)"/>
+  <rect x="10" y="10" width="800" height="680" rx="14" fill="none" stroke="#7a5426" stroke-width="4"/>
+
+  <!-- 5x5 grid, spacing 130, origin (150,90) -->
+  <g stroke="#5a3d1a" stroke-width="2.5">
+    <line x1="150" y1="90" x2="150" y2="610"/>
+    <line x1="280" y1="90" x2="280" y2="610"/>
+    <line x1="410" y1="90" x2="410" y2="610"/>
+    <line x1="540" y1="90" x2="540" y2="610"/>
+    <line x1="670" y1="90" x2="670" y2="610"/>
+    <line x1="150" y1="90" x2="670" y2="90"/>
+    <line x1="150" y1="220" x2="670" y2="220"/>
+    <line x1="150" y1="350" x2="670" y2="350"/>
+    <line x1="150" y1="480" x2="670" y2="480"/>
+    <line x1="150" y1="610" x2="670" y2="610"/>
+  </g>
+
+  <!-- White stone group: single stone at (2,2) = (410,350) -->
+  <g filter="url(#stoneShadowGA)">
+    <circle cx="410" cy="350" r="30" fill="url(#stoneWhiteA)" stroke="#a8a294" stroke-width="2"/>
+  </g>
+
+  <!-- Black stones surrounding on 3 orthogonal sides: north (2,1), south (2,3), west (1,2) -->
+  <g filter="url(#stoneShadowGA)">
+    <circle cx="410" cy="220" r="30" fill="url(#stoneBlackA)"/>
+    <circle cx="410" cy="480" r="30" fill="url(#stoneBlackA)"/>
+    <circle cx="280" cy="350" r="30" fill="url(#stoneBlackA)"/>
+  </g>
+
+  <!-- Candidate points, lettered. Only "A" (east, the true open liberty) is orthogonally adjacent to white. -->
+  <g font-family="Verdana, Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle">
+    <circle cx="540" cy="350" r="26" fill="none" stroke="#c0392b" stroke-width="4"/>
+    <text x="540" y="359" fill="#5a1a12">A</text>
+
+    <circle cx="280" cy="220" r="26" fill="none" stroke="#c0392b" stroke-width="4"/>
+    <text x="280" y="229" fill="#5a1a12">B</text>
+
+    <circle cx="540" cy="480" r="26" fill="none" stroke="#c0392b" stroke-width="4"/>
+    <text x="540" y="489" fill="#5a1a12">C</text>
+
+    <circle cx="280" cy="480" r="26" fill="none" stroke="#c0392b" stroke-width="4"/>
+    <text x="280" y="489" fill="#5a1a12">D</text>
+
+    <circle cx="540" cy="220" r="26" fill="none" stroke="#c0392b" stroke-width="4"/>
+    <text x="540" y="229" fill="#5a1a12">E</text>
+  </g>
+</svg>

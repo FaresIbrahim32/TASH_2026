@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" width="900" height="320">
+  <defs>
+    <linearGradient id="feltCB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1f6f63"/>
+      <stop offset="100%" stop-color="#12564c"/>
+    </linearGradient>
+    <radialGradient id="tokGreenC" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#b6f0c4"/>
+      <stop offset="45%" stop-color="#2fae57"/>
+      <stop offset="100%" stop-color="#136b30"/>
+    </radialGradient>
+    <radialGradient id="tokYellowC" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#fff6cc"/>
+      <stop offset="45%" stop-color="#ffc924"/>
+      <stop offset="100%" stop-color="#c98f00"/>
+    </radialGradient>
+    <radialGradient id="tokGrayB" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#e2e2e2"/>
+      <stop offset="45%" stop-color="#9a9a9a"/>
+      <stop offset="100%" stop-color="#5c5c5c"/>
+    </radialGradient>
+    <filter id="holeShadowCB" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#04211d" flood-opacity="0.5"/>
+    </filter>
+    <filter id="tokShadowCB" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="900" height="320" rx="24" fill="url(#feltCB)"/>
+  <rect x="10" y="10" width="880" height="300" rx="18" fill="none" stroke="#0d4a41" stroke-width="4"/>
+
+  <!-- 7-hole track -->
+  <g filter="url(#holeShadowCB)">
+    <circle cx="60" cy="170" r="34" fill="#0e4c43"/>
+    <circle cx="190" cy="170" r="34" fill="#0e4c43"/>
+    <circle cx="320" cy="170" r="34" fill="#0e4c43"/>
+    <circle cx="450" cy="170" r="34" fill="#0e4c43"/>
+    <circle cx="580" cy="170" r="34" fill="#0e4c43"/>
+    <circle cx="710" cy="170" r="34" fill="#0e4c43"/>
+    <circle cx="840" cy="170" r="34" fill="#0e4c43"/>
+  </g>
+
+  <!-- Green piece (to jump) -->
+  <g filter="url(#tokShadowCB)">
+    <circle cx="60" cy="170" r="30" fill="url(#tokGreenC)" stroke="#0f5626" stroke-width="2"/>
+    <ellipse cx="52" cy="161" rx="9" ry="6" fill="#ffffff" opacity="0.5"/>
+  </g>
+
+  <!-- Yellow piece (jumped over) -->
+  <g filter="url(#tokShadowCB)">
+    <circle cx="190" cy="170" r="30" fill="url(#tokYellowC)" stroke="#a97a00" stroke-width="2"/>
+    <ellipse cx="182" cy="161" rx="9" ry="6" fill="#ffffff" opacity="0.55"/>
+  </g>
+
+  <!-- Gray blocker piece (occupied hole) -->
+  <g filter="url(#tokShadowCB)">
+    <circle cx="580" cy="170" r="30" fill="url(#tokGrayB)" stroke="#3a3a3a" stroke-width="2"/>
+    <ellipse cx="572" cy="161" rx="9" ry="6" fill="#ffffff" opacity="0.5"/>
+  </g>
+
+  <!-- Candidate letters (shuffled — correct landing hole at x=320 is labeled "C", not "A") -->
+  <text x="320" y="235" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="26" font-weight="700" fill="#f4ead0">C</text>
+  <text x="450" y="235" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="26" font-weight="700" fill="#f4ead0">A</text>
+  <text x="580" y="235" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="26" font-weight="700" fill="#f4ead0">B</text>
+  <text x="710" y="235" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="26" font-weight="700" fill="#f4ead0">D</text>
+  <text x="840" y="235" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="26" font-weight="700" fill="#f4ead0">E</text>
+</svg>

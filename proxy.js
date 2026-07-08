@@ -12,7 +12,8 @@ export function proxy(request) {
     pathname === "/" ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/test") ||
-    pathname.startsWith("/mri");
+    pathname.startsWith("/mri") ||
+    pathname.startsWith("/culture-connect");
 
   // If user is trying to access a protected page and doesn't have a session cookie, redirect to login
   if (isProtectedRoute && !sessionCookie) {

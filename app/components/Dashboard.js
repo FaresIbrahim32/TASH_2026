@@ -19,9 +19,30 @@ import {
   X,
   RefreshCw,
   Brain,
+  ScanFace,
 } from "lucide-react";
+import TeamCredit from "./TeamCredit";
 
 const ALLOW_DELETION = process.env.NEXT_PUBLIC_ALLOW_RECORD_DELETION === "true";
+
+const FLAG_BADGE_COLORS = {
+  low: { bg: "#ecfdf5", text: "#065f46" },
+  medium: { bg: "#fffbeb", text: "#92400e" },
+  high: { bg: "#fff5f5", text: "#991b1b" },
+};
+
+// The raw supporting measurements behind the Facial Behavior & Engagement Screen flag (see
+// scoreSession() in app/hooks/useFaceTracking.js), stored on faceTracking
+// alongside the flag itself. Kept visually secondary — heuristic,
+// non-validated numbers, not a diagnostic score.
+const FACE_METRICS = [
+  { key: "trackingQuality", label: "Tracking quality", format: (v) => `${Math.round((v ?? 0) * 100)}%` },
+  { key: "blinkRatePerMin", label: "Blink rate", format: (v) => `${(v ?? 0).toFixed(1)}/min` },
+  { key: "headMotionScore", label: "Head motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "gazeMotionScore", label: "Gaze motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "mouthMotionScore", label: "Mouth motion", format: (v) => (v ?? 0).toFixed(2) },
+  { key: "expressionVariability", label: "Expression variability", format: (v) => (v ?? 0).toFixed(2) },
+];
 
 export default function Dashboard({ user }) {
   const router = useRouter();
@@ -31,9 +52,14 @@ export default function Dashboard({ user }) {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [activeView, setActiveView] = useState("home"); // "home" | "history"
 
+  const [cultureSessions, setCultureSessions] = useState([]);
+  const [cultureLoading, setCultureLoading] = useState(false);
+  const [selectedCultureSession, setSelectedCultureSession] = useState(null);
+
   useEffect(() => {
     if (activeView === "history") {
       fetchHistory();
+      fetchCultureHistory();
     }
   }, [activeView]);
 
@@ -79,6 +105,21 @@ export default function Dashboard({ user }) {
     }
   }
 
+  async function fetchCultureHistory() {
+    setCultureLoading(true);
+    try {
+      const res = await fetch("/api/culture-sessions");
+      if (res.ok) {
+        const data = await res.json();
+        setCultureSessions(data.sessions || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Facial Behavior & Engagement Screen history:", err);
+    } finally {
+      setCultureLoading(false);
+    }
+  }
+
   async function handleDelete(sk) {
     if (!ALLOW_DELETION) {
       alert("Record deletion is disabled.");
@@ -105,6 +146,36 @@ export default function Dashboard({ user }) {
       }
     } catch (err) {
       console.error("Error deleting assessment:", err);
+      alert("A network error occurred. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function handleDeleteCulture(sk) {
+    if (!ALLOW_DELETION) {
+      alert("Record deletion is disabled.");
+      return;
+    }
+    const confirmDelete = window.confirm("Are you sure you want to delete this Facial Behavior & Engagement Screen session? This action cannot be undone.");
+    if (!confirmDelete) return;
+
+    setDeletingId(sk);
+    try {
+      const res = await fetch("/api/culture-sessions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ SK: sk }),
+      });
+
+      if (res.ok) {
+        setCultureSessions((prev) => prev.filter((sess) => sess.SK !== sk));
+      } else {
+        const errData = await res.json();
+        alert(errData.message || "Failed to delete Facial Behavior & Engagement Screen session.");
+      }
+    } catch (err) {
+      console.error("Error deleting Facial Behavior & Engagement Screen session:", err);
       alert("A network error occurred. Please try again.");
     } finally {
       setDeletingId(null);
@@ -370,6 +441,59 @@ export default function Dashboard({ user }) {
                 </div>
               </div>
 
+              {/* Card 4: Facial Behavior & Engagement Screen */}
+              <div
+                onClick={() => router.push("/culture-connect")}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid var(--line)",
+                  borderRadius: "16px",
+                  padding: "32px",
+                  color: "var(--ink)",
+                  boxShadow: "var(--shadow)",
+                  cursor: "pointer",
+                  transition: "transform 0.25s ease, box-shadow 0.25s ease",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  minHeight: "260px",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = "translateY(-5px)";
+                  e.currentTarget.style.boxShadow = "0 15px 35px rgba(26, 43, 36, 0.15)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "var(--shadow)";
+                }}
+              >
+                <div>
+                  <div style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "12px",
+                    background: "rgba(15, 118, 110, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "24px",
+                  }}>
+                    <ScanFace size={24} style={{ color: "var(--teal)" }} />
+                  </div>
+                  <h3 style={{ fontSize: "1.35rem", fontWeight: 700, marginBottom: "8px", color: "var(--teal-dark)" }}>
+                    Facial Behavior & Engagement Screen
+                  </h3>
+                  <p style={{ color: "var(--muted)", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                    Describe a themed picture out loud and answer a few cultural game questions while your facial behavior is reviewed. Takes about 2 minutes.
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold", fontSize: "0.9rem", color: "var(--teal)", marginTop: "24px" }}>
+                  Start Session &rarr;
+                </div>
+              </div>
+
             </div>
           </div>
         ) : (
@@ -596,9 +720,146 @@ export default function Dashboard({ user }) {
                 })}
               </div>
             )}
+
+            {/* Facial Behavior & Engagement Screen Sessions — separate list, own detail modal, does not touch the Mini-Cog/MMSE rendering above */}
+            <div style={{ marginTop: "40px" }}>
+              <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--teal-dark)", display: "flex", alignItems: "center", gap: "8px" }}>
+                <ScanFace size={20} />
+                Facial Behavior & Engagement Screen Sessions
+              </h2>
+              <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: "4px", marginBottom: "20px" }}>
+                Picture descriptions and cultural game questions, with a facial-behavior review flag.
+              </p>
+
+              {cultureLoading ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "24px 0", color: "var(--muted)" }}>
+                  <Loader2 className="animate-spin" size={20} style={{ color: "var(--teal)" }} />
+                  Loading Facial Behavior & Engagement Screen history...
+                </div>
+              ) : cultureSessions.length === 0 ? (
+                <div style={{
+                  background: "#ffffff",
+                  border: "1px solid var(--line)",
+                  borderRadius: "12px",
+                  padding: "32px 24px",
+                  textAlign: "center",
+                  boxShadow: "var(--shadow)",
+                }}>
+                  <p style={{ color: "var(--muted)", fontSize: "0.9rem", margin: 0 }}>No Facial Behavior & Engagement Screen sessions yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {cultureSessions.map((sess) => {
+                    const flag = sess.faceTracking?.flag;
+                    const gameScore = sess.gameScore;
+                    return (
+                      <div
+                        key={sess.SK}
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid var(--line)",
+                          borderRadius: "12px",
+                          padding: "24px",
+                          boxShadow: "var(--shadow)",
+                          display: "flex",
+                          flexWrap: "wrap",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "20px",
+                        }}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--teal-dark)" }}>
+                              Facial Behavior & Engagement Screen ({(sess.language || "es").toUpperCase()})
+                            </h4>
+                            {flag && (
+                              <span style={{
+                                background: FLAG_BADGE_COLORS[flag.severity]?.bg || "#f1f5f9",
+                                color: FLAG_BADGE_COLORS[flag.severity]?.text || "var(--ink)",
+                                fontSize: "0.78rem",
+                                fontWeight: 700,
+                                padding: "4px 10px",
+                                borderRadius: "20px",
+                              }}>
+                                {flag.level}
+                              </span>
+                            )}
+                            {gameScore && (
+                              <span style={{ background: "rgba(15, 118, 110, 0.08)", color: "var(--teal)", fontSize: "0.78rem", fontWeight: 700, padding: "4px 10px", borderRadius: "20px" }}>
+                                Games: {gameScore.correct}/{gameScore.total}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "var(--muted)", fontSize: "0.85rem" }}>
+                            <Calendar size={14} />
+                            {formatDate(sess.createdAt)}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCultureSession(sess)}
+                            style={{
+                              background: "transparent",
+                              color: "var(--teal)",
+                              border: "1px solid var(--teal)",
+                              borderRadius: "8px",
+                              padding: "8px 14px",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                            }}
+                          >
+                            <FileText size={14} />
+                            View Results
+                          </button>
+                          {ALLOW_DELETION && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCulture(sess.SK)}
+                              disabled={deletingId === sess.SK}
+                              style={{
+                                background: "transparent",
+                                color: "#d92d20",
+                                border: "1px solid #fda29b",
+                                borderRadius: "8px",
+                                padding: "8px 14px",
+                                fontSize: "0.85rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              {deletingId === sess.SK ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
+
+      <TeamCredit />
+
+      {selectedCultureSession && (
+        <CultureSessionDetailsModal
+          session={selectedCultureSession}
+          onClose={() => setSelectedCultureSession(null)}
+        />
+      )}
 
       {selectedSubmission && (
         <SubmissionDetailsModal
@@ -1343,6 +1604,226 @@ function SubmissionDetailsModal({ submission, onClose, onRegradeSuccess }) {
           }
         }
       `}</style>
+    </div>
+  );
+}
+
+function CultureSessionDetailsModal({ session, onClose }) {
+  const flag = session.faceTracking?.flag;
+  const scenarios = session.scenarios || [];
+  const gameScore = session.gameScore;
+  const pictureTranscript = session.grading?.pictureTranscript;
+  const pictureScenario = scenarios.find((s) => s.type === "picture");
+  const hasPictureAudio = !!pictureScenario?.audioUrl;
+  const elapsedMs = new Date().getTime() - new Date(session.createdAt).getTime();
+  // Only the picture transcript is async; game correctness is stored at submit time.
+  const transcriptPending = hasPictureAudio && !session.grading && !session.gradingError && elapsedMs <= 8 * 60 * 1000;
+  const transcriptFailed = session.gradingError === true || (hasPictureAudio && !session.grading && elapsedMs > 8 * 60 * 1000);
+
+  function formatDate(dateString) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  return (
+    <div style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: "rgba(16, 37, 31, 0.45)",
+      backdropFilter: "blur(6px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+      padding: "20px",
+    }}>
+      <div style={{
+        background: "#ffffff",
+        borderRadius: "16px",
+        width: "100%",
+        maxWidth: "800px",
+        maxHeight: "90vh",
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: "0 20px 50px rgba(10, 25, 20, 0.25)",
+        border: "1px solid var(--line)",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          background: "#10251f",
+          color: "#ffffff",
+          padding: "20px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>Facial Behavior & Engagement Screen Session</h3>
+            <span style={{ fontSize: "0.8rem", color: "var(--teal-light)", opacity: 0.85 }}>
+              Taken on {formatDate(session.createdAt)}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.8 }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ padding: "24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "24px", flex: 1 }}>
+          {flag && (
+            <div style={{
+              background: FLAG_BADGE_COLORS[flag.severity]?.bg || "#f1f5f9",
+              color: FLAG_BADGE_COLORS[flag.severity]?.text || "var(--ink)",
+              borderRadius: "10px",
+              padding: "16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}>
+              <strong style={{ fontSize: "0.95rem" }}>{flag.level}</strong>
+              <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "0.85rem" }}>
+                {(flag.reasons || []).map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {session.faceTracking && typeof session.faceTracking.trackingQuality === "number" && (
+            <div>
+              <h4 style={{ margin: "0 0 10px", fontSize: "0.95rem", fontWeight: 700, color: "var(--teal-dark)" }}>Session Measurements</h4>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px" }}>
+                {FACE_METRICS.map((m) => (
+                  <div key={m.key} style={{ border: "1px solid var(--line)", borderRadius: "8px", padding: "10px 12px", background: "#f9fafa" }}>
+                    <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--ink)" }}>{m.format(session.faceTracking[m.key])}</div>
+                    <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginTop: "2px" }}>{m.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {session.sessionVideoUrl ? (
+            <div>
+              <h4 style={{ margin: "0 0 10px", fontSize: "0.95rem", fontWeight: 700, color: "var(--teal-dark)" }}>Session Video</h4>
+              <video src={session.sessionVideoUrl} controls style={{ width: "100%", maxWidth: "480px", borderRadius: "10px", border: "1px solid var(--line)" }} />
+            </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--muted)", fontStyle: "italic" }}>
+              Video not saved for this session.
+            </p>
+          )}
+
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+              <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--teal-dark)", borderBottom: "2px solid var(--teal)", paddingBottom: "6px" }}>
+                Session Breakdown
+              </h4>
+              {gameScore && (
+                <span style={{ fontSize: "0.9rem", fontWeight: 700, background: "rgba(15, 118, 110, 0.08)", color: "var(--teal)", padding: "6px 12px", borderRadius: "8px" }}>
+                  Game questions: {gameScore.correct} / {gameScore.total} correct
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {scenarios.map((scenario, index) => {
+                if (scenario.type === "picture") {
+                  return (
+                    <DetailSection
+                      key={scenario.id}
+                      title="Picture Description (spoken, not scored)"
+                      question={scenario.prompt || scenario.question}
+                      responseContent={
+                        scenario.audioUrl ? (
+                          <audio src={scenario.audioUrl} controls style={{ width: "100%", maxWidth: "360px" }} />
+                        ) : (
+                          <span style={{ color: "var(--red)", fontSize: "0.85rem" }}>No recording.</span>
+                        )
+                      }
+                      transcript={pictureTranscript}
+                    />
+                  );
+                }
+                // Game question — scored on the client at submit time.
+                return (
+                  <DetailSection
+                    key={scenario.id}
+                    title={`Game Question ${index}`}
+                    score={scenario.correct ? 1 : 0}
+                    maxScore={1}
+                    question={scenario.question}
+                    groundTruth={scenario.expectedAnswer}
+                    responseContent={
+                      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {scenario.imageUrl && (
+                          <img src={scenario.imageUrl} alt="" style={{ width: "100%", maxWidth: "300px", borderRadius: "8px", border: "1px solid var(--line)" }} />
+                        )}
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.88rem" }}>
+                          <span>Patient selected: <strong>{scenario.selectedAnswer || "No answer"}</strong></span>
+                          {scenario.correct ? (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#065f46", fontWeight: 700 }}>
+                              <CheckCircle size={15} /> Correct
+                            </span>
+                          ) : (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "#b91c1c", fontWeight: 700 }}>
+                              <AlertTriangle size={15} /> Incorrect
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    }
+                  />
+                );
+              })}
+
+              {transcriptPending && (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#92400e", background: "#fef3c7", border: "1px solid #fde68a", borderRadius: "10px", padding: "14px" }}>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span style={{ fontSize: "0.88rem" }}>The picture-description transcript is still being generated — refresh in a moment.</span>
+                </div>
+              )}
+
+              {transcriptFailed && (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", padding: "14px" }}>
+                  <AlertTriangle size={18} />
+                  <span style={{ fontSize: "0.88rem" }}>The picture-description transcript could not be generated. The facial-behavior flag and game answers above are unaffected.</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ background: "#f8faf9", padding: "16px 24px", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: "linear-gradient(135deg, #0f766e 0%, #0d5d58 100%)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              fontSize: "0.9rem",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

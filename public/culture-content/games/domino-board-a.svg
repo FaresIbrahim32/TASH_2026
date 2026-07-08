@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460">
+  <defs>
+    <linearGradient id="feltDA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a5a2b"/>
+      <stop offset="100%" stop-color="#6b4321"/>
+    </linearGradient>
+    <linearGradient id="ivory" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fffdf6"/>
+      <stop offset="100%" stop-color="#efe7d4"/>
+    </linearGradient>
+    <linearGradient id="cPink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f7a8c4"/><stop offset="100%" stop-color="#d85a8a"/></linearGradient>
+    <linearGradient id="cBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7fb0e6"/><stop offset="100%" stop-color="#2f6ac0"/></linearGradient>
+    <linearGradient id="cGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8fd6a0"/><stop offset="100%" stop-color="#2f9a55"/></linearGradient>
+    <linearGradient id="cYellow" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe08a"/><stop offset="100%" stop-color="#e8b73a"/></linearGradient>
+    <linearGradient id="cGray" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c7c1b4"/><stop offset="100%" stop-color="#948d7d"/></linearGradient>
+    <filter id="tileShadowDA" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#2a1808" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect width="900" height="460" rx="24" fill="url(#feltDA)"/>
+
+  <!-- Reference tile (pink | pink), marked with a highlight ring so it reads as
+       the tile to match without needing a text label -->
+  <rect x="356" y="92" width="188" height="108" rx="16" fill="none" stroke="#ffd27a" stroke-width="3" stroke-dasharray="9 7"/>
+  <g filter="url(#tileShadowDA)">
+    <rect x="370" y="104" width="160" height="84" rx="12" fill="url(#ivory)" stroke="#c9bfa6" stroke-width="2"/>
+    <line x1="450" y1="112" x2="450" y2="180" stroke="#b7ac90" stroke-width="3"/>
+    <rect x="380" y="116" width="60" height="60" rx="9" fill="url(#cPink)"/>
+    <rect x="460" y="116" width="60" height="60" rx="9" fill="url(#cPink)"/>
+  </g>
+
+  <!-- Option tiles A-E: w140 h80, start 60 pitch 160, y 250 -->
+  <!-- A: blue | green -->
+  <g filter="url(#tileShadowDA)">
+    <rect x="60" y="250" width="140" height="80" rx="12" fill="url(#ivory)" stroke="#c9bfa6" stroke-width="2"/>
+    <line x1="130" y1="258" x2="130" y2="322" stroke="#b7ac90" stroke-width="3"/>
+    <rect x="70" y="262" width="52" height="56" rx="8" fill="url(#cBlue)"/>
+    <rect x="138" y="262" width="52" height="56" rx="8" fill="url(#cGreen)"/>
+  </g>
+  <text x="130" y="360" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="22" font-weight="700" fill="#fff6e6">A</text>
+
+  <!-- B: yellow | blue -->
+  <g filter="url(#tileShadowDA)">
+    <rect x="220" y="250" width="140" height="80" rx="12" fill="url(#ivory)" stroke="#c9bfa6" stroke-width="2"/>
+    <line x1="290" y1="258" x2="290" y2="322" stroke="#b7ac90" stroke-width="3"/>
+    <rect x="230" y="262" width="52" height="56" rx="8" fill="url(#cYellow)"/>
+    <rect x="298" y="262" width="52" height="56" rx="8" fill="url(#cBlue)"/>
+  </g>
+  <text x="290" y="360" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="22" font-weight="700" fill="#fff6e6">B</text>
+
+  <!-- C: green | yellow -->
+  <g filter="url(#tileShadowDA)">
+    <rect x="380" y="250" width="140" height="80" rx="12" fill="url(#ivory)" stroke="#c9bfa6" stroke-width="2"/>
+    <line x1="450" y1="258" x2="450" y2="322" stroke="#b7ac90" stroke-width="3"/>
+    <rect x="390" y="262" width="52" height="56" rx="8" fill="url(#cGreen)"/>
+    <rect x="458" y="262" width="52" height="56" rx="8" fill="url(#cYellow)"/>
+  </g>
+  <text x="450" y="360" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="22" font-weight="700" fill="#fff6e6">C</text>
+
+  <!-- D: gray | pink  (correct) -->
+  <g filter="url(#tileShadowDA)">
+    <rect x="540" y="250" width="140" height="80" rx="12" fill="url(#ivory)" stroke="#c9bfa6" stroke-width="2"/>
+    <line x1="610" y1="258" x2="610" y2="322" stroke="#b7ac90" stroke-width="3"/>
+    <rect x="550" y="262" width="52" height="56" rx="8" fill="url(#cGray)"/>
+    <rect x="618" y="262" width="52" height="56" rx="8" fill="url(#cPink)"/>
+  </g>
+  <text x="610" y="360" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="22" font-weight="700" fill="#fff6e6">D</text>
+
+  <!-- E: blue | yellow -->
+  <g filter="url(#tileShadowDA)">
+    <rect x="700" y="250" width="140" height="80" rx="12" fill="url(#ivory)" stroke="#c9bfa6" stroke-width="2"/>
+    <line x1="770" y1="258" x2="770" y2="322" stroke="#b7ac90" stroke-width="3"/>
+    <rect x="710" y="262" width="52" height="56" rx="8" fill="url(#cBlue)"/>
+    <rect x="778" y="262" width="52" height="56" rx="8" fill="url(#cYellow)"/>
+  </g>
+  <text x="770" y="360" text-anchor="middle" font-family="Verdana, Arial, sans-serif" font-size="22" font-weight="700" fill="#fff6e6">E</text>
+</svg>

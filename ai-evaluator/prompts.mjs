@@ -6,7 +6,7 @@ export const CLOCK_SCHEMA = {
   type: "OBJECT",
   properties: {
     score: { type: "INTEGER", description: "Score assigned. Must be exactly 2 for normal clock, or 0 for abnormal clock." },
-    rationale: { type: "STRING", description: "Visual audit details explaining the presence and ordering of numbers 1-12, the circular shape, and hand placements pointing to 11 and 2." }
+    rationale: { type: "STRING", description: "Visual audit details explaining the presence and ordering of numbers 1-12, the circular shape, and hand placements — including which hand is visibly shorter (hour hand) vs longer (minute hand), and which number each one points to." }
   },
   required: ["score", "rationale"]
 };
@@ -83,14 +83,15 @@ export const PENTAGON_SCHEMA = {
 
 // Prompt templates dynamically generated based on target inputs
 export const prompts = {
-  clockDrawing: () => 
+  clockDrawing: () =>
     `Evaluate this hand-drawn clock image for Mini-Cog screening.
     Determine if it is a normal clock drawing. To be 'normal' (2 points), it must have:
     1. A closed circular boundary.
     2. All numbers 1-12 present in correct order and sequence in their approximate positions.
-    3. Exactly two hands meeting at a center, pointing to 11 and 2 (representing 10 past 11).
-    
-    If any criteria are missed (e.g. missing numbers, incorrect sequence, numbers outside the circle, or wrong hand alignment), score it 0. Do not assign 1 point.
+    3. Exactly two hands meeting at a center, clearly differentiated by length: a visibly SHORTER hour hand and a visibly LONGER minute hand. The shorter hour hand must point to/near 11, and the longer minute hand must point to/near 2 (representing 10 past 11).
+
+    If any criteria are missed, score it 0. Do not assign 1 point. This includes: missing numbers, incorrect sequence, numbers outside the circle, only one hand or more than two hands, hands of equal or indistinguishable length (so hour vs. minute cannot be told apart), or the hour/minute hands reversed (e.g. the longer hand at 11 and the shorter hand at 2) even if both hands point at roughly the right numbers.
+    In the rationale, explicitly state which drawn hand is shorter, which is longer, and which number each points to.
     Return the score (0 or 2) and visual audit rationale.`,
 
   wordRecall: (targetWords) => 
