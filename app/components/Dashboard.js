@@ -21,6 +21,7 @@ import {
   Brain,
   ScanFace,
 } from "lucide-react";
+import TeamCredit from "./TeamCredit";
 
 const ALLOW_DELETION = process.env.NEXT_PUBLIC_ALLOW_RECORD_DELETION === "true";
 
@@ -30,7 +31,7 @@ const FLAG_BADGE_COLORS = {
   high: { bg: "#fff5f5", text: "#991b1b" },
 };
 
-// The raw supporting measurements behind the Cultural Face Screen flag (see
+// The raw supporting measurements behind the Facial Behavior & Engagement Screen flag (see
 // scoreSession() in app/hooks/useFaceTracking.js), stored on faceTracking
 // alongside the flag itself. Kept visually secondary — heuristic,
 // non-validated numbers, not a diagnostic score.
@@ -113,7 +114,7 @@ export default function Dashboard({ user }) {
         setCultureSessions(data.sessions || []);
       }
     } catch (err) {
-      console.error("Failed to fetch Cultural Face Screen history:", err);
+      console.error("Failed to fetch Facial Behavior & Engagement Screen history:", err);
     } finally {
       setCultureLoading(false);
     }
@@ -156,7 +157,7 @@ export default function Dashboard({ user }) {
       alert("Record deletion is disabled.");
       return;
     }
-    const confirmDelete = window.confirm("Are you sure you want to delete this Cultural Face Screen session? This action cannot be undone.");
+    const confirmDelete = window.confirm("Are you sure you want to delete this Facial Behavior & Engagement Screen session? This action cannot be undone.");
     if (!confirmDelete) return;
 
     setDeletingId(sk);
@@ -171,10 +172,10 @@ export default function Dashboard({ user }) {
         setCultureSessions((prev) => prev.filter((sess) => sess.SK !== sk));
       } else {
         const errData = await res.json();
-        alert(errData.message || "Failed to delete Cultural Face Screen session.");
+        alert(errData.message || "Failed to delete Facial Behavior & Engagement Screen session.");
       }
     } catch (err) {
-      console.error("Error deleting Cultural Face Screen session:", err);
+      console.error("Error deleting Facial Behavior & Engagement Screen session:", err);
       alert("A network error occurred. Please try again.");
     } finally {
       setDeletingId(null);
@@ -440,7 +441,7 @@ export default function Dashboard({ user }) {
                 </div>
               </div>
 
-              {/* Card 4: Cultural Face Screen */}
+              {/* Card 4: Facial Behavior & Engagement Screen */}
               <div
                 onClick={() => router.push("/culture-connect")}
                 style={{
@@ -482,7 +483,7 @@ export default function Dashboard({ user }) {
                     <ScanFace size={24} style={{ color: "var(--teal)" }} />
                   </div>
                   <h3 style={{ fontSize: "1.35rem", fontWeight: 700, marginBottom: "8px", color: "var(--teal-dark)" }}>
-                    Cultural Face Screen
+                    Facial Behavior & Engagement Screen
                   </h3>
                   <p style={{ color: "var(--muted)", fontSize: "0.92rem", lineHeight: 1.5 }}>
                     Describe a themed picture out loud and answer a few cultural game questions while your facial behavior is reviewed. Takes about 2 minutes.
@@ -720,11 +721,11 @@ export default function Dashboard({ user }) {
               </div>
             )}
 
-            {/* Cultural Face Screen Sessions — separate list, own detail modal, does not touch the Mini-Cog/MMSE rendering above */}
+            {/* Facial Behavior & Engagement Screen Sessions — separate list, own detail modal, does not touch the Mini-Cog/MMSE rendering above */}
             <div style={{ marginTop: "40px" }}>
               <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--teal-dark)", display: "flex", alignItems: "center", gap: "8px" }}>
                 <ScanFace size={20} />
-                Cultural Face Screen Sessions
+                Facial Behavior & Engagement Screen Sessions
               </h2>
               <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: "4px", marginBottom: "20px" }}>
                 Picture descriptions and cultural game questions, with a facial-behavior review flag.
@@ -733,7 +734,7 @@ export default function Dashboard({ user }) {
               {cultureLoading ? (
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "24px 0", color: "var(--muted)" }}>
                   <Loader2 className="animate-spin" size={20} style={{ color: "var(--teal)" }} />
-                  Loading Cultural Face Screen history...
+                  Loading Facial Behavior & Engagement Screen history...
                 </div>
               ) : cultureSessions.length === 0 ? (
                 <div style={{
@@ -744,7 +745,7 @@ export default function Dashboard({ user }) {
                   textAlign: "center",
                   boxShadow: "var(--shadow)",
                 }}>
-                  <p style={{ color: "var(--muted)", fontSize: "0.9rem", margin: 0 }}>No Cultural Face Screen sessions yet.</p>
+                  <p style={{ color: "var(--muted)", fontSize: "0.9rem", margin: 0 }}>No Facial Behavior & Engagement Screen sessions yet.</p>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -770,7 +771,7 @@ export default function Dashboard({ user }) {
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--teal-dark)" }}>
-                              Cultural Face Screen ({(sess.language || "es").toUpperCase()})
+                              Facial Behavior & Engagement Screen ({(sess.language || "es").toUpperCase()})
                             </h4>
                             {flag && (
                               <span style={{
@@ -850,6 +851,8 @@ export default function Dashboard({ user }) {
           </div>
         )}
       </div>
+
+      <TeamCredit />
 
       {selectedCultureSession && (
         <CultureSessionDetailsModal
@@ -1665,7 +1668,7 @@ function CultureSessionDetailsModal({ session, onClose }) {
           alignItems: "center"
         }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>Cultural Face Screen Session</h3>
+            <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>Facial Behavior & Engagement Screen Session</h3>
             <span style={{ fontSize: "0.8rem", color: "var(--teal-light)", opacity: 0.85 }}>
               Taken on {formatDate(session.createdAt)}
             </span>

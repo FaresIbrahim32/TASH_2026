@@ -89,7 +89,14 @@ export async function prepareMediaPart(url) {
 // optional systemInstruction override (defaults to the clinical one below) so
 // non-clinical grading tasks aren't framed as a clinical evaluation.
 export async function callGemini(ai, prompt, mediaPart, schema, retries = 3, delayMs = 2000, systemInstruction = SYSTEM_INSTRUCTION) {
-  const modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+  const primaryModel = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+  // Cheaper/higher-throughput model used only after the primary model itself
+  // reports a rate-limit/quota error — not for generic transient failures
+  // (503/"unavailable"/"high demand"), since those are Google-side capacity
+  // issues a model switch may not help with, and the primary model may recover
+  // on its own once the delay elapses.
+  const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || "gemini-3.1-flash-lite";
+  let modelName = primaryModel;
   const contents = [prompt];
 
   if (mediaPart) {
@@ -112,15 +119,26 @@ export async function callGemini(ai, prompt, mediaPart, schema, retries = 3, del
     } catch (error) {
       const errStr = String(error).toLowerCase();
       const errMessage = (error.message || "").toLowerCase();
-      const isRetryable = errStr.includes("429") || errMessage.includes("429") || 
+      const isRateLimited = errStr.includes("429") || errMessage.includes("429") ||
+                            errStr.includes("quota") || errMessage.includes("quota") ||
+                            errStr.includes("exhausted") || errMessage.includes("exhausted");
+      const isRetryable = isRateLimited ||
                           errStr.includes("503") || errMessage.includes("503") ||
-                          errStr.includes("quota") || errMessage.includes("quota") ||
                           errStr.includes("unavailable") || errMessage.includes("unavailable") ||
-                          errStr.includes("high demand") || errMessage.includes("high demand") ||
-                          errStr.includes("exhausted") || errMessage.includes("exhausted");
+                          errStr.includes("high demand") || errMessage.includes("high demand");
 
       if (isRetryable && attempt < retries) {
-        console.warn(`Gemini API transient failure. Retrying attempt ${attempt + 1}/${retries} in ${delayMs}ms...`);
+        // Switch to the fallback model once, and stay on it for the rest of
+        // this call's retries — don't ping-pong back to the rate-limited
+        // primary model within the same request.
+        if (isRateLimited && modelName !== fallbackModel) {
+          console.warn(
+            `Gemini API rate limit hit on ${modelName}. Switching to ${fallbackModel} for retry attempt ${attempt + 1}/${retries}.`
+          );
+          modelName = fallbackModel;
+        } else {
+          console.warn(`Gemini API transient failure. Retrying attempt ${attempt + 1}/${retries} in ${delayMs}ms...`);
+        }
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         delayMs *= 2; // exponential backoff
       } else {

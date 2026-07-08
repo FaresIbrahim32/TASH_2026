@@ -401,9 +401,29 @@ export function useFaceTracking() {
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
           audio: !!recordVideo,
         });
+
+        // A stop can race ahead of this async getUserMedia call — e.g. capture
+        // is gated on a record button now, so a very fast Start-then-Stop click
+        // can call stopTracking() while we're still awaiting the camera. If
+        // that happened, runningRef.current is already false: release this
+        // now-orphaned stream immediately instead of leaving the camera light
+        // on indefinitely (nothing else will ever stop these tracks).
+        if (!runningRef.current) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
         streamRef.current = stream;
         videoEl.srcObject = stream;
         await videoEl.play();
+
+        // Same race, second window: a stop could also land during play().
+        if (!runningRef.current) {
+          stream.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+          videoEl.srcObject = null;
+          return;
+        }
 
         // Best-effort initial sizing; analyzeFrame's per-frame
         // syncOverlayCanvasSize() call is what actually guarantees correctness
@@ -469,10 +489,18 @@ export function useFaceTracking() {
   /**
    * Stops tracking, computes the summary + flag, and resolves the recorded
    * video Blob (if any) only after the MediaRecorder's `onstop` has actually
-   * flushed its last chunk.
+   * flushed its last chunk. Safe to call when nothing is running (e.g. a fast
+   * double-click, or a stop that arrives while a previous take's stop is
+   * still being awaited elsewhere) — resolves immediately as a no-op rather
+   * than re-stopping an already-stopped recorder/stream. runningRef is the
+   * single authoritative signal for this, checked synchronously so two
+   * overlapping calls can't both think there's something to stop.
    * @returns {Promise<{ summary: object|null, flag: object|null, videoBlob: Blob|null }>}
    */
   const stopTracking = useCallback(() => {
+    if (!runningRef.current) {
+      return Promise.resolve({ summary: null, flag: null, videoBlob: null });
+    }
     runningRef.current = false;
     setIsTracking(false);
     cancelAnimationFrame(animationIdRef.current);

@@ -1,4 +1,4 @@
-// Content + UI strings for the Cultural Face Screen feature.
+// Content + UI strings for the Facial Behavior & Engagement Screen feature.
 // Structured per-language so new languages can be added without touching
 // page/hook code. Picture images are per-language (culturally themed); the
 // Ludo/Domino board images are language-neutral and shared from
@@ -275,7 +275,7 @@ export const cultureUI = {
     stopVoice: "Stop",
     next: "Next",
     finish: "Finish session",
-    audioInstruction: "Speak for 60 seconds about everything you see in the picture.",
+    audioInstruction: "Speak for 90 seconds about everything you see in the picture.",
     saving: "Saving the session…",
     resultsTitle: "Session complete",
     correctAnswers: (a, b) => `Correct answers: ${a} of ${b}`,
@@ -310,7 +310,7 @@ export const cultureUI = {
     stopVoice: "Detener voz",
     next: "Siguiente",
     finish: "Finalizar sesión",
-    audioInstruction: "Habla durante 60 segundos sobre todo lo que ves en la imagen.",
+    audioInstruction: "Habla durante 90 segundos sobre todo lo que ves en la imagen.",
     saving: "Guardando la sesión…",
     resultsTitle: "Sesión completada",
     correctAnswers: (a, b) => `Respuestas correctas: ${a} de ${b}`,
@@ -345,7 +345,7 @@ export const cultureUI = {
     stopVoice: "停止",
     next: "下一步",
     finish: "結束場次",
-    audioInstruction: "請用60秒的時間，說出你在圖片中看到的一切。",
+    audioInstruction: "請用90秒的時間，說出你在圖片中看到的一切。",
     saving: "正在儲存場次…",
     resultsTitle: "場次已完成",
     correctAnswers: (a, b) => `答對題數：${a} / ${b}`,
@@ -379,7 +379,7 @@ export const cultureUI = {
     stopVoice: "إيقاف",
     next: "التالي",
     finish: "إنهاء الجلسة",
-    audioInstruction: "تحدث لمدة 60 ثانية عن كل ما تراه في الصورة.",
+    audioInstruction: "تحدث لمدة 90 ثانية عن كل ما تراه في الصورة.",
     saving: "جارٍ حفظ الجلسة…",
     resultsTitle: "اكتملت الجلسة",
     correctAnswers: (a, b) => `الإجابات الصحيحة: ${a} من ${b}`,

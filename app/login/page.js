@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { KeyRound, Mail, AlertCircle, ArrowRight } from "lucide-react";
+import TeamCredit from "../components/TeamCredit";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -113,6 +114,8 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <TeamCredit />
     </main>
   );
 }

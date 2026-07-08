@@ -216,7 +216,7 @@ export default function CultureConnectPage() {
     if (!videoRef.current) return;
     try {
       await startTracking(videoRef.current, {
-        durationSec: 60,
+        durationSec: 90,
         recordVideo: videoConsent,
         overlayCanvas: overlayCanvasRef.current,
       });
@@ -226,20 +226,22 @@ export default function CultureConnectPage() {
     }
   }
 
-  // Fired by AudioRecorder when recording stops (Stop button, or the 60s cap).
+  // Fired by AudioRecorder when recording stops (Stop button, or the 90s cap).
   // Stops face-tracking and captures the flag/video; the promise is stashed so
   // handleNextStep can await it if the patient advances before it resolves.
+  // stopTracking() itself is safe to call even when nothing is running (e.g. a
+  // fast double-click, or a stop that lands while handleRecordingStart is
+  // still awaiting a previous take's teardown) — it no-ops via runningRef
+  // rather than us trying to approximate that with a page-level guard here.
   function handleRecordingStop() {
-    // A fast double-click on "Stop" can fire this twice before the button
-    // unmounts. Guard so we only call stopTracking() once per take — a second
-    // concurrent call would see the recorder already 'inactive' and resolve
-    // with a null video blob, clobbering the real one. (Reset in
-    // handleRecordingStart for the next take.)
-    if (faceStopPromiseRef.current) return;
     const promise = stopTracking();
     faceStopPromiseRef.current = promise;
     promise.then((result) => {
-      faceResultRef.current = result;
+      // Only store real data — a redundant/no-op stop call resolves with
+      // nulls and shouldn't clobber a genuine result that already landed.
+      if (result.summary || result.flag || result.videoBlob) {
+        faceResultRef.current = result;
+      }
     });
   }
 
@@ -266,7 +268,15 @@ export default function CultureConnectPage() {
       // untracked click quiz.
       if (currentStep.type === "picture") {
         if (faceStopPromiseRef.current) {
-          faceResultRef.current = await faceStopPromiseRef.current;
+          // Same truthy guard as handleRecordingStop's .then(): a double-click
+          // on Stop can leave this ref pointing at a redundant no-op promise
+          // (nulls) instead of the real one — don't let that clobber a result
+          // that's already there, or that the real promise's own .then() is
+          // about to set independently.
+          const result = await faceStopPromiseRef.current;
+          if (result.summary || result.flag || result.videoBlob) {
+            faceResultRef.current = result;
+          }
         }
         setStepIndex((i) => i + 1);
         return;
@@ -426,7 +436,7 @@ export default function CultureConnectPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <ScanFace size={22} style={{ color: "#91d6cd" }} />
             <h1 style={{ margin: 0, fontSize: "clamp(1.1rem, 1.8vw, 1.5rem)", fontWeight: 700 }}>
-              Cultural Face Screen
+              Facial Behavior & Engagement Screen
             </h1>
           </div>
         </div>
@@ -605,7 +615,7 @@ export default function CultureConnectPage() {
               <AudioRecorder
                 key={currentStep.id}
                 lang={language}
-                maxDurationSeconds={60}
+                maxDurationSeconds={90}
                 instruction={t.audioInstruction}
                 onConfirm={handleAudioConfirm}
                 onRecordingStart={handleRecordingStart}

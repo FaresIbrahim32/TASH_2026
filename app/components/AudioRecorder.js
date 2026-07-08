@@ -240,7 +240,7 @@ export default function AudioRecorder({ onConfirm, onRecordingStart, onRecording
       setIsRecording(true);
       startTimer();
       // Signal the parent so it can start any coupled capture (e.g. the
-      // Cultural Face Screen's webcam face-tracking) in lockstep with the mic.
+      // Facial Behavior & Engagement Screen's webcam face-tracking) in lockstep with the mic.
       onRecordingStartRef.current?.();
     } catch (err) {
       console.error("Microphone access error:", err);

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { User, Mail, KeyRound, AlertCircle, ArrowRight, ClipboardList } from "lucide-react";
+import TeamCredit from "../components/TeamCredit";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -190,6 +191,8 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
+
+      <TeamCredit />
     </main>
   );
 }
