@@ -13,7 +13,8 @@ export function proxy(request) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/test") ||
     pathname.startsWith("/mri") ||
-    pathname.startsWith("/culture-connect");
+    pathname.startsWith("/culture-connect") ||
+    pathname.startsWith("/card-recall");
 
   // If user is trying to access a protected page and doesn't have a session cookie, redirect to login
   if (isProtectedRoute && !sessionCookie) {

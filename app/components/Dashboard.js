@@ -20,8 +20,10 @@ import {
   RefreshCw,
   Brain,
   ScanFace,
+  Layers,
 } from "lucide-react";
 import TeamCredit from "./TeamCredit";
+import { STAGES as CARD_RECALL_STAGES } from "../lib/cardRecallContent";
 
 const ALLOW_DELETION = process.env.NEXT_PUBLIC_ALLOW_RECORD_DELETION === "true";
 
@@ -54,12 +56,15 @@ export default function Dashboard({ user }) {
 
   const [cultureSessions, setCultureSessions] = useState([]);
   const [cultureLoading, setCultureLoading] = useState(false);
+  const [cardSessions, setCardSessions] = useState([]);
+  const [cardLoading, setCardLoading] = useState(false);
   const [selectedCultureSession, setSelectedCultureSession] = useState(null);
 
   useEffect(() => {
     if (activeView === "history") {
       fetchHistory();
       fetchCultureHistory();
+      fetchCardHistory();
     }
   }, [activeView]);
 
@@ -117,6 +122,41 @@ export default function Dashboard({ user }) {
       console.error("Failed to fetch Facial Behavior & Engagement Screen history:", err);
     } finally {
       setCultureLoading(false);
+    }
+  }
+
+  async function fetchCardHistory() {
+    setCardLoading(true);
+    try {
+      const res = await fetch("/api/card-sessions");
+      if (res.ok) {
+        const data = await res.json();
+        setCardSessions(data.sessions || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Card Recall history:", err);
+    } finally {
+      setCardLoading(false);
+    }
+  }
+
+  async function handleDeleteCardSession(sk) {
+    if (!ALLOW_DELETION) {
+      alert("Record deletion is disabled.");
+      return;
+    }
+    const confirmDelete = window.confirm("Delete this Card Recall session? This action cannot be undone.");
+    if (!confirmDelete) return;
+    try {
+      const res = await fetch(`/api/card-sessions?sk=${encodeURIComponent(sk)}`, { method: "DELETE" });
+      if (res.ok) {
+        setCardSessions((prev) => prev.filter((s) => s.SK !== sk));
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.message || "Failed to delete Card Recall session.");
+      }
+    } catch (err) {
+      console.error("Error deleting Card Recall session:", err);
     }
   }
 
@@ -494,6 +534,59 @@ export default function Dashboard({ user }) {
                 </div>
               </div>
 
+              {/* Card 5: Card Recall */}
+              <div
+                onClick={() => router.push("/card-recall")}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid var(--line)",
+                  borderRadius: "16px",
+                  padding: "32px",
+                  color: "var(--ink)",
+                  boxShadow: "var(--shadow)",
+                  cursor: "pointer",
+                  transition: "transform 0.25s ease, box-shadow 0.25s ease",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  minHeight: "260px",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = "translateY(-5px)";
+                  e.currentTarget.style.boxShadow = "0 15px 35px rgba(26, 43, 36, 0.15)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "var(--shadow)";
+                }}
+              >
+                <div>
+                  <div style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "12px",
+                    background: "rgba(15, 118, 110, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "24px",
+                  }}>
+                    <Layers size={24} style={{ color: "var(--teal)" }} />
+                  </div>
+                  <h3 style={{ fontSize: "1.35rem", fontWeight: 700, marginBottom: "8px", color: "var(--teal-dark)" }}>
+                    Card Recall
+                  </h3>
+                  <p style={{ color: "var(--muted)", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                    A visual memory activity: remember which card each symbol was hidden in, over rounds of increasing difficulty. Takes about 3 minutes.
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold", fontSize: "0.9rem", color: "var(--teal)", marginTop: "24px" }}>
+                  Start Activity &rarr;
+                </div>
+              </div>
+
             </div>
           </div>
         ) : (
@@ -842,6 +935,162 @@ export default function Dashboard({ user }) {
                             </button>
                           )}
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Card Recall Sessions — own SK prefix (CARDGAME#), client-scored, no media and no AI */}
+            <div style={{ marginTop: "40px" }}>
+              <h2 style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--teal-dark)", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Layers size={20} />
+                Card Recall Sessions
+              </h2>
+              <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginTop: "4px", marginBottom: "20px" }}>
+                Remembering which card each symbol was hidden in, over rounds of increasing difficulty. 
+              </p>
+
+              {cardLoading ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "24px 0", color: "var(--muted)" }}>
+                  <Loader2 className="animate-spin" size={20} style={{ color: "var(--teal)" }} />
+                  Loading Card Recall history...
+                </div>
+              ) : cardSessions.length === 0 ? (
+                <div style={{
+                  background: "#ffffff",
+                  border: "1px solid var(--line)",
+                  borderRadius: "12px",
+                  padding: "32px 24px",
+                  textAlign: "center",
+                  boxShadow: "var(--shadow)",
+                }}>
+                  <p style={{ color: "var(--muted)", fontSize: "0.9rem", margin: 0 }}>No Card Recall sessions yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {cardSessions.map((sess) => {
+                    const sum = sess.summary || {};
+                    // Every round that was started asked each of its symbols once
+                    // on the first attempt — that total is the FAMS denominator.
+                    const famsMax = (sess.stageStats || []).reduce((acc, st) => acc + st.pairs, 0);
+                    const metrics = [
+                      {
+                        label: "First-attempt memory score",
+                        value: `${sum.firstAttemptMemoryScore ?? 0} / ${famsMax}`,
+                      },
+                      {
+                        label: "Rounds cleared",
+                        value: `${sum.stagesCompleted ?? 0} / ${CARD_RECALL_STAGES.length}`,
+                      },
+                      {
+                        label: "Overall accuracy",
+                        value: `${sum.accuracyPct ?? 0}%`,
+                        sub: `${sum.correctResponses ?? 0} / ${sum.totalResponses ?? 0} taps correct`,
+                      },
+                      {
+                        label: "Total errors",
+                        value: `${sum.totalErrors ?? 0}`,
+                        sub: "wrong taps across all attempts",
+                      },
+                      {
+                        label: "Average response time",
+                        value: `${((sum.meanLatencyMs ?? 0) / 1000).toFixed(1)}s`,
+                      },
+                    ];
+                    return (
+                      <div
+                        key={sess.SK}
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid var(--line)",
+                          borderRadius: "12px",
+                          padding: "24px",
+                          boxShadow: "var(--shadow)",
+                        }}
+                      >
+                        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
+                          <div>
+                            <p style={{ fontWeight: 700, color: "var(--ink)", marginBottom: "4px" }}>
+                              {new Date(sess.createdAt).toLocaleString()}
+                            </p>
+                            <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                              <Languages size={14} />
+                              {sess.language}
+                              {sess.durationMs ? ` · ${Math.round(sess.durationMs / 1000)}s` : ""}
+                            </p>
+                          </div>
+                          {ALLOW_DELETION && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCardSession(sess.SK)}
+                              style={{
+                                background: "transparent",
+                                color: "#d92d20",
+                                border: "1px solid #fda29b",
+                                borderRadius: "8px",
+                                padding: "8px 14px",
+                                fontSize: "0.85rem",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <Trash2 size={14} />
+                              Delete
+                            </button>
+                          )}
+                        </div>
+
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                          {metrics.map((m) => (
+                            <div
+                              key={m.label}
+                              style={{
+                                border: "1px solid var(--line)",
+                                borderRadius: "10px",
+                                padding: "10px 14px",
+                                minWidth: "165px",
+                                flex: "1 1 165px",
+                              }}
+                            >
+                              <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--ink)" }}>{m.value}</div>
+                              <div style={{ fontSize: "0.75rem", color: "var(--ink)" }}>{m.label}</div>
+                              {m.sub && (
+                                <div style={{ fontSize: "0.7rem", color: "var(--muted)", marginTop: "2px" }}>
+                                  {m.sub}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {Array.isArray(sess.stageStats) && sess.stageStats.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "14px" }}>
+                            {sess.stageStats.map((st) => (
+                              <span
+                                key={st.stage}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  fontSize: "0.78rem",
+                                  border: `1px solid ${st.completed ? "#a7f3d0" : "#fecaca"}`,
+                                  background: st.completed ? "#ecfdf5" : "#fef2f2",
+                                  color: st.completed ? "#065f46" : "#991b1b",
+                                  borderRadius: "999px",
+                                  padding: "4px 10px",
+                                }}
+                              >
+                                {st.completed ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
+                                Round {st.stage + 1} · {st.pairs} symbols · {st.attempts} attempt{st.attempts === 1 ? "" : "s"} · {st.totalErrors} err
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
