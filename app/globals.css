@@ -570,3 +570,19 @@ button:disabled {
   animation: spin 1s linear infinite;
 }
 
+
+/* Card Recall board (app/card-recall/page.js).
+   The column count lives here rather than in the component's inline styles so
+   it can respond to viewport width: four columns on a clinic tablet, two on a
+   phone, where eight cards across four columns would shrink each card to well
+   under a comfortable tap target for an older patient. */
+.card-recall-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 560px) {
+  .card-recall-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
